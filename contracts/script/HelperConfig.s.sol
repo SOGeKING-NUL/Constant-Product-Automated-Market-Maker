@@ -9,7 +9,7 @@ abstract contract CodeConstants{    //we keep all the constants and magic number
     uint256 constant public BASE_SEPOLIA_CHAIN_ID= 84532;
     uint256 constant public BASE_MAINNET_CHAIN_ID= 8453;
     uint256 constant public LOCAL_CHAIN_ID= 31337; //anvil
-    address constant public USDC__BASE_SEPOLIA_ADDRESS= 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+    address constant public USDC_BASE_SEPOLIA_ADDRESS= 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
     address constant public WETH_BASE_SEPOLIA_ADDRESS = 0x4200000000000000000000000000000000000006;
 }
 
@@ -31,8 +31,8 @@ contract HelperConfig is CodeConstants, Script{
 
     function getBaseSepoliaConfig() public pure returns(NetworkConfig memory){
         return NetworkConfig({
-            token0: USDC__BASE_SEPOLIA_ADDRESS,
-            token1: WETH_BASE_SEPOLIA_ADDRESS
+            token0: WETH_BASE_SEPOLIA_ADDRESS,
+            token1: USDC_BASE_SEPOLIA_ADDRESS 
         });
     }
 
