@@ -52,7 +52,7 @@ contract HelperConfig is CodeConstants, Script{
         vm.stopBroadcast();
 
         localNetworkConfig= NetworkConfig({
-            token0: address(mockWETH),
+            token0: address(mockWETH), //converts mockerc20 instance to address form
             token1: address(mockUSDC)
         });
 

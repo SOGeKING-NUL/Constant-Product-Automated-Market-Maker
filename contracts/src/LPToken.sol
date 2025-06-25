@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract weth_usdc_lp_token{
+contract LPToken{
 
     //events
     event Approval(address indexed owner, address indexed spender, uint256 amount);

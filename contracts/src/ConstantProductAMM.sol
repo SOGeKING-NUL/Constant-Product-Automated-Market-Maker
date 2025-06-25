@@ -15,7 +15,7 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
 
     IERC20 private immutable token0;
     IERC20 private immutable token1;
-    weth_usdc_lp_token public immutable lpToken;
+    LPToken public immutable lpToken;
 
     uint256 private reserve0;
     uint256 private reserve1;
@@ -24,7 +24,7 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
     constructor(address _token0, address _token1){
         token0 = IERC20(_token0);
         token1 = IERC20(_token1);
-        lpToken= new weth_usdc_lp_token();
+        lpToken= new LPToken();
 
     }
 
