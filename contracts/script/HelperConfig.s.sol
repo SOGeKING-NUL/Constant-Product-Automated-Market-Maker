@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
 import "../src/ConstantProductAMM.sol";
+import "./MockERC20.sol";
 
 abstract contract CodeConstants{    //we keep all the constants and magic numbers here
     uint256 constant public BASE_SEPOLIA_CHAIN_ID= 84532;
@@ -24,6 +25,7 @@ contract HelperConfig is CodeConstants, Script{
     }
 
     mapping(uint256 chainId => NetworkConfig) public networkConfigs;
+    NetworkConfig public localNetworkConfig;
 
     constructor(){
         networkConfigs[BASE_SEPOLIA_CHAIN_ID] = getBaseSepoliaConfig();
@@ -36,16 +38,40 @@ contract HelperConfig is CodeConstants, Script{
         });
     }
 
-    function getNetworkConfigByChainId(uint256 chainId) public view returns(NetworkConfig memory){
+    function getOrCreateAnvilConfig() public returns(NetworkConfig memory){
+
+        if(localNetworkConfig.token0 != address(0) && localNetworkConfig.token1 != address(0)){
+            return localNetworkConfig;
+        }
+
+        vm.startBroadcast();
+        
+        MockERC20 mockWETH= new MockERC20("Mock Wrapped Ether", "WETH", 18, 1000* 10**18);
+        MockERC20 mockUSDC= new MockERC20("Mock USDC", "USDC", 6, 1000000* 10**6);
+
+        vm.stopBroadcast();
+
+        localNetworkConfig= NetworkConfig({
+            token0: address(mockWETH),
+            token1: address(mockUSDC)
+        });
+
+        return localNetworkConfig;
+    }
+
+    function getNetworkConfigByChainId(uint256 chainId) public returns(NetworkConfig memory){
         if(networkConfigs[chainId].token0 != address(0) && networkConfigs[chainId].token1 != address(0)){
             return networkConfigs[chainId];
+        }
+        else if(chainId == LOCAL_CHAIN_ID){
+            return getOrCreateAnvilConfig();
         }
         else{
             revert HelperConfig_InvalidChainId();
         }
     }
 
-    function getConfig() public view returns(NetworkConfig memory) {
+    function getConfig() public returns(NetworkConfig memory) {
         return getNetworkConfigByChainId(block.chainid);
     }
 
