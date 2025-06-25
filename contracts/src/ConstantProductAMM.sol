@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./LPToken.sol";
 
 contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
 
@@ -14,16 +15,17 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
 
     IERC20 private immutable token0;
     IERC20 private immutable token1;
+    weth_usdc_lp_token public immutable lpToken;
 
     uint256 private reserve0;
     uint256 private reserve1;
 
-    uint256 private totalSupply;
-    mapping (address=>uint256) private lpBalance;
 
     constructor(address _token0, address _token1){
         token0 = IERC20(_token0);
         token1 = IERC20(_token1);
+        lpToken= new weth_usdc_lp_token();
+
     }
 
     function addLiquidity(uint256 _reserveAdded0, uint256 _reserveAdded1) external nonReentrant returns (uint256 shares) {
@@ -33,33 +35,36 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
         token0.transferFrom(msg.sender, address(this), _reserveAdded0);
         token1.transferFrom(msg.sender, address(this), _reserveAdded1);
 
-        if(totalSupply == 0){
+        if(lpToken.totalSupply() == 0){
             shares= _sqrt(_reserveAdded0*_reserveAdded1); //AMM formula to get inital shares
         }
         else{
             require(reserve0 * _reserveAdded1 == reserve1 * _reserveAdded0, "Invalid ratio"); //maintain ratio
-            shares= _min((_reserveAdded0*totalSupply) / reserve0, (_reserveAdded1*totalSupply) / reserve1);
+            shares= _min((_reserveAdded0*lpToken.totalSupply()) / reserve0,
+                         (_reserveAdded1*lpToken.totalSupply()) / reserve1);
         }
 
         require(shares > 0, "AMM: Invalid shares");
 
-        _mintShares(msg.sender, shares);
+        lpToken.mint(msg.sender, shares);
         _updateReserves();
+
         emit LiquidityAdded(msg.sender, shares);
         return shares;
     }
 
     function removeLiquidity(uint256 _shares) external nonReentrant returns (uint256 reserveRemoved0, uint256 reserveRemoved1){
         require(_shares > 0, "AMM: Invalid shares");
-        require(lpBalance[msg.sender] >= _shares, "AMM: Insufficient shares");
+        require(lpToken.balanceOf(msg.sender) >= _shares, "AMM: Insufficient shares");
 
         uint256 balance0 = token0.balanceOf(address(this));
         uint256 balance1 = token1.balanceOf(address(this));
-        reserveRemoved0= (_shares * balance0)/totalSupply;
-        reserveRemoved1= (_shares * balance1)/totalSupply;
+        reserveRemoved0= (_shares * balance0)/lpToken.totalSupply();
+        reserveRemoved1= (_shares * balance1)/lpToken.totalSupply();
 
-        require(reserveRemoved0 > 0 && reserveRemoved1 > 0, "AMM: Invlaid reserves");
-        _burnShares(msg.sender, _shares);
+        require(reserveRemoved0 > 0 && reserveRemoved1 > 0, "AMM: Invalid reserves");
+
+        lpToken.burn(msg.sender, _shares);
 
         token0.transfer(msg.sender, reserveRemoved0);
         token1.transfer(msg.sender, reserveRemoved1);
@@ -109,16 +114,6 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
 
     function _min(uint256 x, uint256 y) internal pure returns(uint256){
         return x < y? x: y;
-    }
-
-    function _mintShares(address to, uint256 _shares) internal{
-        lpBalance[to] += _shares;
-        totalSupply += _shares;
-    }
-
-    function _burnShares(address from, uint256 _shares) internal{
-        lpBalance[from] -= _shares;
-        totalSupply -= _shares;
     }
 
     function _updateReserves() internal {
