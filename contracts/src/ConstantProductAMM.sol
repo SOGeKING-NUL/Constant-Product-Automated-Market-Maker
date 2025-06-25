@@ -85,7 +85,8 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
         (IERC20 tokenIn, IERC20 tokenOut, uint256 reserveIn, uint256 reserveOut)= isToken0 ? (token0, token1, reserve0, reserve1) : (token1, token0, reserve1, reserve0);
 
         tokenIn.transferFrom(msg.sender, address(this), _amountIn);
-        amountOut= (reserveOut * _amountIn)/(reserveIn + _amountIn);
+        uint256 _amountInWithFees= _amountIn *997/1000; //0.3 percent platform fees
+        amountOut= (reserveOut * _amountInWithFees)/(reserveIn + _amountInWithFees);
 
         require(amountOut > 0, "AMM: Invlaid amount out ");
         
