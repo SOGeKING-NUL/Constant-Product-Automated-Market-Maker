@@ -1,24 +1,29 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 contract weth_usdc_lp_token{
 
     //events
-    event Deposit(address indexed user, uint256 amount);
     event Approval(address indexed owner, address indexed spender, uint256 amount);
-    event Withdraw(address indexed user, uint256 amount);
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     string public name= 'WETH-USDC CPAMM Token';
     string public symbol= 'WETH-USDC-CPAMM';
-    uint256 public decimals= 18;
+    uint8 public decimals= 18;
 
     mapping (address=> uint256) public balanceOf;
-    mapping (address => mapping (address => uint256)) public allowance;
+    mapping (address => mapping (address => uint256)) public allowance; //changes blockchain state
 
-    function deposit() public payable{
-        balanceOf[msg.sender] += msg.value;
-        emit Deposit(msg.sender, msg.value);
+    uint256 private _totalSupply;
+    address private immutable amm;
+
+    constructor() {
+        amm= msg.sender;
+    }
+    
+    modifier onlyAMM(){
+        require(msg.sender == amm, "Only AMM can call this function");
+        _;
     }
 
     function approve(address spender, uint256 amount) public returns(bool){
@@ -27,20 +32,12 @@ contract weth_usdc_lp_token{
         return true;
     }
 
-    function withdraw(uint256 amount) public{
-        require(balanceOf[msg.sender] >= amount, "Insufficient Funds");
-        balanceOf[msg.sender] -= amount;
-        (bool success,)= payable(msg.sender).call{value:amount}("");
-        require(success, "Transfer failed");
-        emit Withdraw(msg.sender, amount);
-    }
-
     function totalSupply() public view returns(uint256){
-        return address(this).balance;
+        return _totalSupply;
     }
 
-    function transfer(address reciever, uint256 amount) public returns(bool){
-        return transferFrom(msg.sender, reciever, amount);
+    function transfer(address receiver, uint256 amount) public returns(bool){
+        return transferFrom(msg.sender, receiver, amount);
     }
 
     function transferFrom(address from, address to, uint256 amount) public returns(bool){
@@ -57,11 +54,21 @@ contract weth_usdc_lp_token{
         balanceOf[to] +=amount;
 
         emit Transfer(from, to, amount);
-
         return true;
     }
 
-    fallback() external payable {
-        deposit();
+    function mint(address to, uint256 amount) external onlyAMM{
+        balanceOf[to] += amount;
+        _totalSupply += amount;
+        emit Transfer(address(0), to, amount);
+
+    }
+
+    function burn(address from, uint256 amount) external onlyAMM{
+
+        require(balanceOf[from] >= amount, "insufficient funds");
+        balanceOf[from] -= amount;
+        _totalSupply -= amount;
+        emit Transfer(from, address(0), amount);
     }
 }
