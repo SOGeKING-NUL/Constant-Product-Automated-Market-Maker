@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion, useInView } from "framer-motion"
-import { useRef } from "react"
+import { motion } from "framer-motion"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
 import AnimatedBackground from "@/components/animated-background"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { ChevronRight, Share, Settings, Plus, ArrowUpDown } from "lucide-react"
 
 // Custom dot component for highlighting current position
 const CustomDot = (props: any) => {
@@ -38,8 +39,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function LiquidityPage() {
   const [mounted, setMounted] = useState(false)
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   // State variables for AMM mechanics
   const [tokenAReserves, setTokenAReserves] = useState(1000)
@@ -58,7 +57,7 @@ export default function LiquidityPage() {
       data.push({
         x,
         curveY: y,
-        isCurrent: Math.abs(x - tokenAReserves) < 12.5, // Close to current position
+        isCurrent: Math.abs(x - tokenAReserves) < 12.5,
       })
     }
     return data
@@ -105,34 +104,6 @@ export default function LiquidityPage() {
   const priceAInB = tokenBReserves / tokenAReserves
   const priceBInA = tokenAReserves / tokenBReserves
 
-  // Pool data
-  const pools = [
-    {
-      pair: "ETH/USDC",
-      tvl: "$12,847,392",
-      volume24h: "$2,394,847",
-      apy: "24.7%",
-      yourLiquidity: "$15,847",
-      fees: "$127.43",
-    },
-    {
-      pair: "BTC/ETH",
-      tvl: "$8,234,567",
-      volume24h: "$1,567,234",
-      apy: "18.3%",
-      yourLiquidity: "$0",
-      fees: "$0",
-    },
-    {
-      pair: "USDC/USDT",
-      tvl: "$15,678,901",
-      volume24h: "$3,456,789",
-      apy: "12.1%",
-      yourLiquidity: "$5,234",
-      fees: "$23.45",
-    },
-  ]
-
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -157,144 +128,87 @@ export default function LiquidityPage() {
       >
         <Navigation />
 
-        <main className="pt-20">
-          {/* Hero Section */}
-          <section className="py-20 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto text-center">
-              <motion.div
-                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
-                <h1 className="text-5xl sm:text-6xl md:text-7xl font-light tracking-tight mb-6">Liquidity Pools</h1>
-                <p className="text-xl text-white/70 font-light leading-relaxed mb-8 max-w-2xl mx-auto">
-                  Provide liquidity and earn fees from trading activity
-                </p>
-              </motion.div>
-            </div>
-          </section>
+        <main className="pt-20 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Breadcrumb Navigation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex items-center gap-2 text-white/60 mb-6"
+            >
+              <span>Explore</span>
+              <ChevronRight size={16} />
+              <span>Pools</span>
+              <ChevronRight size={16} />
+              <span className="text-white">ETH / USDC</span>
+            </motion.div>
 
-          {/* Stats Overview */}
-          <section className="py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-6xl mx-auto">
-              <motion.div
-                ref={ref}
-                initial={{ opacity: 0, y: 50 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.8 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16"
-              >
-                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
-                  <div className="text-3xl font-light mb-2 text-[#a5f10d]">$36.7M</div>
-                  <div className="text-white/60 font-light">Total Value Locked</div>
+            {/* Header Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8"
+            >
+              <div className="flex items-center gap-4 mb-4 lg:mb-0">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold">E</span>
                 </div>
-                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
-                  <div className="text-3xl font-light mb-2 text-[#a5f10d]">$7.4M</div>
-                  <div className="text-white/60 font-light">24h Volume</div>
-                </div>
-                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
-                  <div className="text-3xl font-light mb-2 text-[#a5f10d]">18.4%</div>
-                  <div className="text-white/60 font-light">Average APY</div>
-                </div>
-              </motion.div>
-            </div>
-          </section>
-
-          {/* Available Pools */}
-          <section className="py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-6xl mx-auto">
-              <motion.h2
-                initial={{ opacity: 0, y: 30 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-3xl font-light tracking-tight mb-8"
-              >
-                Available Pools
-              </motion.h2>
-
-              <div className="space-y-6 mb-16">
-                {pools.map((pool, index) => (
-                  <motion.div
-                    key={pool.pair}
-                    initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                    animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-                    transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
-                      <div className="md:col-span-1">
-                        <div className="text-xl font-light text-[#a5f10d]">{pool.pair}</div>
-                      </div>
-
-                      <div className="md:col-span-1 text-center">
-                        <div className="text-white/60 text-sm mb-1">TVL</div>
-                        <div className="font-medium">{pool.tvl}</div>
-                      </div>
-
-                      <div className="md:col-span-1 text-center">
-                        <div className="text-white/60 text-sm mb-1">24h Volume</div>
-                        <div className="font-medium">{pool.volume24h}</div>
-                      </div>
-
-                      <div className="md:col-span-1 text-center">
-                        <div className="text-white/60 text-sm mb-1">APY</div>
-                        <div className="font-medium text-[#a5f10d]">{pool.apy}</div>
-                      </div>
-
-                      <div className="md:col-span-1 text-center">
-                        <div className="text-white/60 text-sm mb-1">Your Liquidity</div>
-                        <div className="font-medium">{pool.yourLiquidity}</div>
-                      </div>
-
-                      <div className="md:col-span-1 text-center">
-                        <div className="text-white/60 text-sm mb-1">Unclaimed Fees</div>
-                        <div className="font-medium text-[#a5f10d]">{pool.fees}</div>
-                      </div>
-
-                      <div className="md:col-span-1 text-center">
-                        <Button
-                          size="sm"
-                          className="bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90 font-medium rounded-full"
-                        >
-                          Add Liquidity
-                        </Button>
-                      </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-light">ETH / USDC</h1>
+                    <span className="bg-white/10 px-2 py-1 rounded text-sm">v4</span>
+                    <span className="bg-white/10 px-2 py-1 rounded text-sm">0.05%</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
+                      <span className="text-pink-400 text-sm">17.62% reward APR</span>
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </section>
 
-          {/* AMM Mechanics Section */}
-          <section className="py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                className="text-center mb-12"
-              >
-                <h2 className="text-4xl sm:text-5xl font-light tracking-tight mb-6">Constant Product AMM</h2>
-                <p className="text-xl text-white/70 font-light max-w-2xl mx-auto">
-                  Explore how automated market makers work with the constant product formula x × y = k
-                </p>
-              </motion.div>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" className="bg-transparent border-white/20">
+                  <Settings size={16} />
+                </Button>
+                <Button variant="outline" size="sm" className="bg-transparent border-white/20">
+                  <Share size={16} />
+                </Button>
+              </div>
+            </motion.div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Chart Visualization */}
-                <div className="lg:col-span-2">
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Left Section - TVL and Chart */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* TVL Display */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                  <div className="text-4xl font-light mb-2">$38.1M</div>
+                  <div className="text-white/60">Past day</div>
+                </motion.div>
+
+                {/* Hyperbola Visualization */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
                   <Card className="bg-white/5 backdrop-blur-md border-white/10">
                     <CardHeader>
-                      <CardTitle className="text-[#a5f10d] text-2xl font-light">
-                        Hyperbola Curve Visualization
+                      <CardTitle className="text-[#a5f10d] text-xl font-light">
+                        Constant Product Curve (x × y = k)
                       </CardTitle>
                       <CardDescription className="text-white/60">
-                        The curve represents all possible states where x × y = k
+                        Interactive visualization of the AMM liquidity curve
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-96">
+                      <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -321,151 +235,207 @@ export default function LiquidityPage() {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </motion.div>
 
-                {/* Pool Metrics */}
-                <div className="space-y-6">
+                {/* Time Controls */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    {["1H", "1D", "1W", "1M", "1Y"].map((period) => (
+                      <Button
+                        key={period}
+                        variant="outline"
+                        size="sm"
+                        className={`bg-transparent border-white/20 ${
+                          period === "1D" ? "bg-white/10 text-[#a5f10d]" : ""
+                        }`}
+                      >
+                        {period}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button variant="outline" size="sm" className="bg-transparent border-white/20">
+                    Volume ↓
+                  </Button>
+                </motion.div>
+              </div>
+
+              {/* Right Sidebar */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* APR Section */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
+
+                </motion.div>
+
+                {/* Liquidity Management Tabs */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                >
                   <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                    <CardHeader>
-                      <CardTitle className="text-[#a5f10d] text-xl font-light">Pool Metrics</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Token A Reserves:</span>
-                        <span className="font-medium">{tokenAReserves.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Token B Reserves:</span>
-                        <span className="font-medium">{tokenBReserves.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Constant k:</span>
-                        <span className="font-medium text-[#a5f10d]">{k.toFixed(0)}</span>
-                      </div>
-                      <div className="border-t border-white/10 pt-4">
-                        <div className="flex justify-between mb-2">
-                          <span className="text-white/60">Price A in B:</span>
-                          <span className="font-medium">{priceAInB.toFixed(4)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/60">Price B in A:</span>
-                          <span className="font-medium">{priceBInA.toFixed(4)}</span>
-                        </div>
-                      </div>
+                    <CardContent className="p-0">
+                      <Tabs defaultValue="add" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-white/10">
+                          <TabsTrigger
+                            value="add"
+                            className="data-[state=active]:bg-[#a5f10d]/20 data-[state=active]:text-[#a5f10d] text-white/60"
+                          >
+                            Add Liquidity
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="remove"
+                            className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 text-white/60"
+                          >
+                            Remove Liquidity
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="add" className="p-6 space-y-4">
+                          <div>
+                            <label className="block text-sm text-white/60 mb-2">Liquidity Amount (Token A)</label>
+                            <Input
+                              type="number"
+                              value={liquidityAmount}
+                              onChange={(e) => setLiquidityAmount(Number(e.target.value))}
+                              className="bg-black/20 border-white/20 text-white"
+                            />
+                          </div>
+                          <div className="bg-black/20 rounded-lg p-3">
+                            <div className="text-sm text-white/60 mb-1">Required Token B:</div>
+                            <div className="text-lg font-medium text-cyan-400">
+                              {(liquidityAmount * (tokenBReserves / tokenAReserves)).toFixed(4)}
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => handleLiquidity(true)}
+                            className="w-full bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90"
+                          >
+                            Add Liquidity
+                          </Button>
+                        </TabsContent>
+
+                        <TabsContent value="remove" className="p-6 space-y-4">
+                          <div>
+                            <label className="block text-sm text-white/60 mb-2">Remove Amount (Token A)</label>
+                            <Input
+                              type="number"
+                              value={liquidityAmount}
+                              onChange={(e) => setLiquidityAmount(Number(e.target.value))}
+                              className="bg-black/20 border-white/20 text-white"
+                            />
+                          </div>
+                          <div className="bg-black/20 rounded-lg p-3">
+                            <div className="text-sm text-white/60 mb-1">Token B to Remove:</div>
+                            <div className="text-lg font-medium text-red-400">
+                              {(liquidityAmount * (tokenBReserves / tokenAReserves)).toFixed(4)}
+                            </div>
+                          </div>
+                          <Button onClick={() => handleLiquidity(false)} className="w-full bg-red-600 hover:bg-red-700">
+                            Remove Liquidity
+                          </Button>
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
+                </motion.div>
 
-                  <Button onClick={resetPool} variant="outline" className="w-full bg-transparent">
-                    Reset Pool
-                  </Button>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                {/* Swap Controls */}
-                <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-[#a5f10d] text-xl font-light">Swap Simulation</CardTitle>
-                    <CardDescription className="text-white/60">
-                      Add Token A to see how it affects Token B reserves
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-white/60 mb-2">Swap Amount (Token A)</label>
-                      <Input
-                        type="number"
-                        value={swapAmount}
-                        onChange={(e) => setSwapAmount(Number(e.target.value))}
-                        className="bg-black/20 border-white/20 text-white"
-                      />
-                    </div>
-                    <div className="bg-black/20 rounded-lg p-3">
-                      <div className="text-sm text-white/60 mb-1">Expected Token B Output:</div>
-                      <div className="text-lg font-medium text-[#a5f10d]">{expectedTokenBOutput.toFixed(4)}</div>
-                    </div>
-                    <Button onClick={handleSwap} className="w-full bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90">
-                      Execute Swap
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Liquidity Controls */}
-                <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-[#a5f10d] text-xl font-light">Liquidity Management</CardTitle>
-                    <CardDescription className="text-white/60">Add or remove liquidity proportionally</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-white/60 mb-2">Liquidity Amount (Token A)</label>
-                      <Input
-                        type="number"
-                        value={liquidityAmount}
-                        onChange={(e) => setLiquidityAmount(Number(e.target.value))}
-                        className="bg-black/20 border-white/20 text-white"
-                      />
-                    </div>
-                    <div className="bg-black/20 rounded-lg p-3">
-                      <div className="text-sm text-white/60 mb-1">Required Token B:</div>
-                      <div className="text-lg font-medium text-cyan-400">
-                        {(liquidityAmount * (tokenBReserves / tokenAReserves)).toFixed(4)}
+                {/* Pool Stats */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                >
+                  <Card className="bg-white/5 backdrop-blur-md border-white/10">
+                    <CardHeader>
+                      <CardTitle className="text-white text-lg font-light">Stats</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <div className="text-white/60 text-sm mb-2">Pool balances</div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Token A:</span>
+                            <span className="text-sm">{tokenAReserves.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Token B:</span>
+                            <span className="text-sm">{tokenBReserves.toFixed(2)}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={() => handleLiquidity(true)} className="flex-1 bg-green-600 hover:bg-green-700">
-                        Add Liquidity
+                      <div>
+                        <div className="text-white/60 text-sm mb-2">Constant k</div>
+                        <div className="text-[#a5f10d] font-medium">{k.toFixed(0)}</div>
+                      </div>
+                      <div>
+                        <div className="text-white/60 text-sm mb-2">Current Prices</div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>A in B:</span>
+                            <span>{priceAInB.toFixed(4)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>B in A:</span>
+                            <span>{priceBInA.toFixed(4)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button onClick={resetPool} variant="outline" className="w-full bg-transparent">
+                        Reset Pool
                       </Button>
-                      <Button
-                        onClick={() => handleLiquidity(false)}
-                        variant="outline"
-                        className="flex-1 border-red-500 text-red-400 hover:bg-red-500/10"
-                      >
-                        Remove Liquidity
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Educational Content */}
-              <div className="mt-12">
-                <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-[#a5f10d] text-2xl font-light">How It Works</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-light mb-3 text-white">Constant Product Formula</h3>
-                      <p className="text-white/70 leading-relaxed">
-                        The hyperbola represents the constant product formula{" "}
-                        <span className="text-[#a5f10d] font-mono">x × y = k</span>, where x and y are the reserves of
-                        Token A and Token B, and k is a constant. This ensures that the product of reserves remains
-                        constant during trades.
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-light mb-3 text-white">Trading Mechanics</h3>
-                      <p className="text-white/70 leading-relaxed">
-                        When you trade, you move along the curve. Adding Token A to the pool increases its reserves and
-                        decreases Token B reserves proportionally. The curve's shape ensures that larger trades have
-                        progressively higher prices (slippage).
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-light mb-3 text-white">Liquidity Effects</h3>
-                      <p className="text-white/70 leading-relaxed">
-                        Adding liquidity increases both token reserves proportionally, creating a new curve with a
-                        higher k value. This provides more liquidity and reduces slippage for traders. Removing
-                        liquidity has the opposite effect.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </div>
             </div>
-          </section>
+
+            {/* Educational Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-12"
+            >
+              <Card className="bg-white/5 backdrop-blur-md border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-[#a5f10d] text-2xl font-light">Understanding AMM Mechanics</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Constant Product Formula</h3>
+                    <p className="text-white/70 leading-relaxed text-sm">
+                      The hyperbola represents <span className="text-[#a5f10d] font-mono">x × y = k</span>, ensuring the
+                      product of reserves remains constant during trades. This mathematical relationship creates
+                      automatic price discovery.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Trading Impact</h3>
+                    <p className="text-white/70 leading-relaxed text-sm">
+                      Each trade moves along the curve, with larger trades experiencing higher slippage. The curve's
+                      shape naturally creates resistance to large price movements, providing stability.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Liquidity Effects</h3>
+                    <p className="text-white/70 leading-relaxed text-sm">
+                      Adding liquidity shifts the entire curve outward (higher k), reducing slippage for all traders.
+                      Liquidity providers earn fees from trades while helping maintain market efficiency.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         </main>
 
         <Footer />
