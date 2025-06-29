@@ -22,8 +22,8 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
 
 
     constructor(address _token0, address _token1){
-        token0 = IERC20(_token0);
-        token1 = IERC20(_token1);
+        token0 = IERC20(_token0);   //WETH
+        token1 = IERC20(_token1);   //USDC
         lpToken= new LPToken();
 
     }
@@ -88,7 +88,7 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
         uint256 _amountInWithFees= _amountIn *997/1000; //0.3 percent platform fees
         amountOut= (reserveOut * _amountInWithFees)/(reserveIn + _amountInWithFees);
 
-        require(amountOut > 0, "AMM: Invlaid amount out ");
+        require(amountOut > 0, "AMM: Invalid amount out ");
         
         tokenOut.transfer(msg.sender, amountOut);
 
@@ -125,16 +125,59 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
 
     //getters
 
-    function getAmountOut(address _tokenIn, uint256 _amountIn) external view returns(uint256 amountOut){
-        require(_tokenIn== address(token0) || _tokenIn == address(token1), "AMM: Invalid token contract");
-        require(_amountIn > 0, "AMM: Invalid token amount");
-
-        bool isToken0 = (_tokenIn == address(token0));
-        (uint256 reserveIn, uint256 reserveOut)=
-            isToken0 ? (reserve0, reserve1) : (reserve1, reserve0);
+    function getSwapEstimate(address _tokenIn, uint256 _amountIn) external view returns (uint256 amountOut) 
+    {
+        require(_tokenIn == address(token0) || _tokenIn == address(token1), "AMM: Invalid token");
+        require(_amountIn > 0, "AMM: Invalid amount");
         
-        amountOut= (reserveOut * _amountIn) / (reserveIn + _amountIn);
-        require(amountOut > 0, "AMM: Invalid amount out");
+        bool isToken0 = (_tokenIn == address(token0));
+        (uint256 reserveIn, uint256 reserveOut) = isToken0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        uint256 amountInWithFee = (_amountIn * 997)/1000; //%0.3 fees
+        
+        amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
+        
         return amountOut;
     }
+
+    function getPoolRatio() external view returns (uint256 ratio, uint256 reserve_0, uint256 reserve_1) {
+        reserve_0 = reserve0;
+        reserve_1 = reserve1;
+        
+        if (reserve_0 == 0 || reserve_1 == 0) {
+            ratio = 0; // No liquidity yet
+        } else {
+            // Ratio of token1 (USDC) per token0(WETH) (with 18 decimal precision)
+            ratio = (reserve_1 * 1e18) / reserve_0;
+        }
+        
+        return (ratio, reserve_0, reserve_1);
+    }
+
+    function getPoolState() external view returns (
+        address token0Address,
+        address token1Address,
+        uint256 reserve_0,
+        uint256 reserve_1,
+        uint256 ratio,
+        uint256 totalLPSupply,
+        uint256 token0ExchangeRate,
+        uint256 token1ExchangeRate 
+    ) 
+    {
+        token0Address = address(token0);
+        token1Address = address(token1);
+        reserve_0 = reserve0;
+        reserve_1 = reserve1;
+        totalLPSupply = lpToken.totalSupply();
+        
+        if (reserve_0 > 0 && reserve_1 > 0) {
+            ratio = (reserve_1 * 1e18) / reserve_0; // token1 per token0  basically follows (token0ExchangeRate * reserve0) == (token1ExchangeRate  * reserve1)
+            token0ExchangeRate = (reserve_1 * 1e18) / reserve_0; // Price of token0 in token1
+            token1ExchangeRate  = (reserve_0 * 1e18) / reserve_1; // Price of token1 in token0
+        }
+        
+        return (token0Address, token1Address, reserve_0, reserve_1, ratio, totalLPSupply, token0ExchangeRate, token1ExchangeRate);
+    }
+
+
 }
