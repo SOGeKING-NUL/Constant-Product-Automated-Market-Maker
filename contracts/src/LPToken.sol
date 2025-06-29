@@ -8,7 +8,7 @@ contract LPToken{
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     string public name= 'WETH-USDC CPAMM Token';
-    string public symbol= 'WETH-USDC-CPAMM';
+    string public symbol= 'X-WETH-USDC';
     uint8 public decimals= 18;
 
     mapping (address=> uint256) public balanceOf;
