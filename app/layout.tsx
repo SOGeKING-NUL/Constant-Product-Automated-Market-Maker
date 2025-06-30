@@ -2,7 +2,8 @@ import type React from "react"
 import { Inter } from "next/font/google"
 import type { Metadata } from "next"
 import "./globals.css"
-import Providers from "@/components/provider";
+import Providers from "@/contexts/provider";
+import { AMMProvider } from "@/contexts/AMMContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,9 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Providers>
-        <body className={`${inter.variable} font-sans`}>{children}</body>
-      </Providers>
+      <body className={`${inter.variable} font-sans`}>
+        <Providers>
+          <AMMProvider>
+            {children}
+          </AMMProvider>
+        </Providers>
+      </body>
     </html>
   )
 }

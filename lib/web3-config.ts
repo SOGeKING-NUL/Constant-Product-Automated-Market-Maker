@@ -9,7 +9,7 @@ export const baseSepolia = {
   rpcUrls: {
     ...wagmiBaseSepolia.rpcUrls,
     default: {
-      http: ['https://base-sepolia.g.alchemy.com/v2/ucCVjEhtLHG-QjIy8oAHw']
+      http: [process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL ||'https://base-sepolia.g.alchemy.com/v2/ucCVjEhtLHG-QjIy8oAHw']
     }
   },
 } as const
