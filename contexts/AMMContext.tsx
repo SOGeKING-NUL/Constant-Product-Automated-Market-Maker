@@ -21,6 +21,7 @@ const DECIMALS = {
 
 const FEE_RATE = 997; // 0.3% fee = 997/1000
 const FEE_DENOMINATOR = 1000;
+const EPSILON = 1000; 
 
 const INITIAL_MOCK_RESERVES = {
     RESERVE_0: 1000,
@@ -63,8 +64,12 @@ interface TransactionStatus {
     result?: any;
 }
 
-interface AMMContextType {
+interface RemovalAmounts {
+    amount0: number;
+    amount1: number;
+}
 
+interface AMMContextType {
     mode: AMMMode;
     toggleMode: () => void;
     isMockMode: boolean;
@@ -80,6 +85,7 @@ interface AMMContextType {
     executeSwap: (tokenIn: 'WETH' | 'USDC', amountIn: number) => Promise<number >;
     addLiquidity: (amount0: number, amount1: number) => Promise<number>;
     removeLiquidity: (shares: number) => Promise<{ reserve0: number; reserve1: number }>;
+    calculateRemovalAmounts: (shares: number) => RemovalAmounts;
 
     resetPool: () => void;
     refreshUserBalances: () => void;    //only for Live Mode
@@ -311,6 +317,25 @@ export function AMMProvider({ children }: { children: ReactNode }) {
         return amountOut;
     }, [poolState, calculateFeeAdjustedAmount]);
 
+    const calculateRemovalAmounts = useCallback((shares: number): RemovalAmounts => {
+        if (shares <= 0) {
+            return { amount0: 0, amount1: 0 };
+        }
+
+        if (poolState.totalLPSupply <= 0) {
+            return { amount0: 0, amount1: 0 };
+        }
+
+        // Calculate proportional amounts based on current reserves
+        const amount0 = (shares * poolState.reserve0) / poolState.totalLPSupply;
+        const amount1 = (shares * poolState.reserve1) / poolState.totalLPSupply;
+
+        return {
+            amount0,
+            amount1
+        };
+    }, [poolState]);
+
     const executeSwap = useCallback(async (tokenIn: 'WETH' | 'USDC', amountIn: number): Promise<number> => {
         setIsLoading(true);
         setError(null);
@@ -410,8 +435,10 @@ export function AMMProvider({ children }: { children: ReactNode }) {
                 shares = sqrt(amount0 * amount1);
                 } 
                 else {
-                    // Fixed ratio validation to match contract: reserve0 * _reserveAdded1 == reserve1 * _reserveAdded0
-                    if (Math.abs(mockPoolState.reserve0 * amount1 - mockPoolState.reserve1 * amount0) > 0.01) {
+                    const left = mockPoolState.reserve0 * amount1;
+                    const right = mockPoolState.reserve1 * amount0;
+                    const diff = Math.abs(left - right);
+                    if (diff > EPSILON) {
                         throw new Error('Invalid ratio');
                     }
                     
@@ -622,6 +649,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
         executeSwap,
         addLiquidity,
         removeLiquidity,
+        calculateRemovalAmounts,
         resetPool,
         refreshUserBalances,
         isLoading: combinedLoading,
