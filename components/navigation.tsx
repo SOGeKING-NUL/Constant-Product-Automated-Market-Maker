@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger,} from '@/components/ui/dropdown-menu'
 import { ChevronDown, LogOut } from 'lucide-react'
+import { useAMM } from '@/contexts/AMMContext' // Import the AMM context
 
 export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -20,6 +21,9 @@ export default function Navigation() {
   const { open } = useAppKit()
   const { address, isConnected, chain } = useAccount()
   const { disconnect } = useDisconnect()
+  
+  // Use AMM context for mode toggle
+  const { mode, toggleMode, isMockMode, isLiveMode } = useAMM()
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
@@ -80,8 +84,33 @@ return (
           </div>
         </div>
 
-        {/* Desktop Wallet Button (Right) */}
+        {/* Desktop Controls (Right) */}
         <div className="hidden md:flex items-center gap-3">
+          
+          {/* Mock/Live Toggle Button */}
+          <div className="flex items-center">
+            <Button
+              onClick={toggleMode}
+              variant="outline"
+              size="sm"
+              className={`relative bg-transparent border transition-all duration-300 ${
+                isLiveMode
+                  ? "border-[#a5f10d] text-[#a5f10d] hover:bg-[#a5f10d]/10"
+                  : "border-white/30 text-white/80 hover:bg-white/10"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                    isLiveMode ? "bg-[#a5f10d] animate-pulse" : "bg-white/60"
+                  }`}
+                />
+                <span className="font-light tracking-wide">{isLiveMode ? "LIVE" : "MOCK"}</span>
+              </div>
+            </Button>
+          </div>
+
+          {/* Wallet Section */}
           {!isConnected ? (
             <Button onClick={() => open()} variant="default" size="sm" className="flex items-center gap-2">
               Connect Wallet
@@ -112,13 +141,39 @@ return (
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 text-white/80 hover:text-[#a5f10d] transition-colors"
-        >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Toggle Button and Mobile Menu */}
+        <div className="flex items-center gap-4">
+          {/* Mock/Live Toggle Button - Mobile Hidden */}
+          <div className="hidden md:hidden">
+            <Button
+              onClick={toggleMode}
+              variant="outline"
+              size="sm"
+              className={`relative bg-transparent border transition-all duration-300 ${
+                isLiveMode
+                  ? "border-[#a5f10d] text-[#a5f10d] hover:bg-[#a5f10d]/10"
+                  : "border-white/30 text-white/80 hover:bg-white/10"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                    isLiveMode ? "bg-[#a5f10d] animate-pulse" : "bg-white/60"
+                  }`}
+                />
+                <span className="font-light tracking-wide">{isLiveMode ? "LIVE" : "MOCK"}</span>
+              </div>
+            </Button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-white/80 hover:text-[#a5f10d] transition-colors"
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -144,9 +199,48 @@ return (
                 {item.name}
               </Link>
             ))}
+            
+            {/* Mobile Mode Toggle */}
+            <div className="pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-white/80 font-light tracking-wide">Trading Mode</span>
+                <Badge 
+                  variant="outline"
+                  className={`transition-all duration-300 ${
+                    isLiveMode 
+                      ? "border-[#a5f10d] text-[#a5f10d] bg-[#a5f10d]/10" 
+                      : "border-white/30 text-white/80 bg-white/5"
+                  }`}
+                >
+                  {isLiveMode ? "LIVE" : "MOCK"}
+                </Badge>
+              </div>
+              
+              <Button
+                onClick={toggleMode}
+                variant="outline"
+                size="sm"
+                className={`w-full bg-transparent border transition-all duration-300 ${
+                  isLiveMode
+                    ? "border-[#a5f10d] text-[#a5f10d] hover:bg-[#a5f10d]/10"
+                    : "border-white/30 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                      isLiveMode ? "bg-[#a5f10d] animate-pulse" : "bg-white/60"
+                    }`}
+                  />
+                  <span className="font-light tracking-wide">
+                    Switch to {isLiveMode ? "MOCK" : "LIVE"} Mode
+                  </span>
+                </div>
+              </Button>
+            </div>
+
             {/* Mobile Wallet Button Section */}
-            <div className="pt-4 mt-2 border-t border-white/10 flex justify-center">
-              {/* Re-using the same wallet logic for mobile */}
+            <div className="pt-4 border-t border-white/10 flex justify-center">
               {!isConnected ? (
                 <Button onClick={() => open()} variant="default" size="sm" className="flex items-center gap-2">
                   Connect Wallet
