@@ -20,7 +20,6 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
     uint256 private reserve0;
     uint256 private reserve1;
 
-
     constructor(address _token0, address _token1){
         token0 = IERC20(_token0);   //WETH
         token1 = IERC20(_token1);   //USDC
@@ -39,7 +38,11 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
             shares= _sqrt(_reserveAdded0*_reserveAdded1); //AMM formula to get inital shares
         }
         else{
-            require(reserve0 * _reserveAdded1 == reserve1 * _reserveAdded0, "Invalid ratio"); //maintain ratio
+            // Use percentage-based tolerance (1%) instead of strict equality
+            uint256 left = reserve0 * _reserveAdded1;
+            uint256 right = reserve1 * _reserveAdded0;
+            uint256 diff = left > right ? left - right : right - left;
+            require(diff * 10000 <= left * 100, "Invalid ratio"); // 1% tolerance
             shares= _min((_reserveAdded0*lpToken.totalSupply()) / reserve0,
                          (_reserveAdded1*lpToken.totalSupply()) / reserve1);
         }
@@ -179,5 +182,48 @@ contract ConstantProductAutomatedMarketMaker is ReentrancyGuard{
         return (token0Address, token1Address, reserve_0, reserve_1, ratio, totalLPSupply, token0ExchangeRate, token1ExchangeRate);
     }
 
+    function getReserves() external view returns (uint256, uint256) {
+        return (reserve0, reserve1);
+    }
 
+    function getUserLPBalance(address user) external view returns (uint256) {
+        return lpToken.balanceOf(user);
+    }
+
+    function getUserPoolShare(address user) external view returns (uint256 sharePercentage) {
+        uint256 userBalance = lpToken.balanceOf(user);
+        uint256 totalSupply = lpToken.totalSupply();
+        if (totalSupply == 0) return 0;
+        return (userBalance * 10000) / totalSupply; // Returns in basis points (10000 = 100%)
+    }
+
+    function calculateRemovalAmounts(uint256 shares) external view returns (uint256 amount0, uint256 amount1) {
+        require(shares > 0, "AMM: Invalid shares");
+        uint256 totalSupply = lpToken.totalSupply();
+        require(totalSupply > 0, "AMM: No liquidity");
+        
+        uint256 balance0 = token0.balanceOf(address(this));
+        uint256 balance1 = token1.balanceOf(address(this));
+        
+        amount0 = (shares * balance0) / totalSupply;
+        amount1 = (shares * balance1) / totalSupply;
+        
+        return (amount0, amount1);
+    }
+
+    function getTokenAddresses() external view returns (address, address) {
+        return (address(token0), address(token1));
+    }
+
+    function getLPTokenAddress() external view returns (address) {
+        return address(lpToken);
+    }
+
+    function getSwapFeeRate() external pure returns (uint256) {
+        return 3; // 0.3% fee in basis points (3/1000)
+    }
+
+    function isPoolInitialized() external view returns (bool) {
+        return lpToken.totalSupply() > 0;
+    }
 }
