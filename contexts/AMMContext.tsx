@@ -107,7 +107,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
     const {address, isConnected}= useAccount();
 
     //Mode State
-    const [mode, setMode] =useState<AMMMode>('mock'); //NEED TO CHANGE TO LIVE FOR PRODUCTION
+    const [mode, setMode] =useState<AMMMode>('live'); //NEED TO CHANGE TO LIVE FOR PRODUCTION
 
     const [mockPoolState, setMockPoolState] = useState<PoolState>({
         token0Address: CONTRACTS.WETH, 
