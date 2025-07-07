@@ -68,13 +68,13 @@ export default function HowToSection() {
               },
               {
                 step: "02",
-                title: "Select Tokens",
-                description: "Choose the tokens you want to swap from our supported pairs",
+                title: "Select Mode",
+                description: "Choose between Mock mode to test things first and Live mode to actual interact with the AMM",
               },
               {
                 step: "03",
-                title: "Execute Trade",
-                description: "Confirm the transaction and complete your token swap instantly",
+                title: "Interact with AMM",
+                description: "Add and Remove Liquidity or Remove tokens to get an understanding of how AMMs work",
               },
             ].map((item, index) => (
               <motion.div

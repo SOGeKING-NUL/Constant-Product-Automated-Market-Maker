@@ -20,7 +20,7 @@ export default function ProductDisplay() {
         >
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight mb-6">Experience AMM</h2>
           <p className="text-xl text-white/70 font-light max-w-2xl mx-auto">
-            Intuitive interface designed for seamless trading and liquidity management
+            Intuitive interface designed for understanding how trading and liquidity management works
           </p>
         </motion.div>
 
@@ -38,7 +38,7 @@ export default function ProductDisplay() {
             {/* Product Demo Image */}
             <div className="relative z-10">
               <Image
-                src="/images/product-demo.png"
+                src="/images/product-demo.jpg"
                 alt="AMM Trading Interface Demo"
                 width={1200}
                 height={600}
@@ -55,7 +55,7 @@ export default function ProductDisplay() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="absolute -top-4 -left-4 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-xl p-3"
           >
-            <div className="text-secondary text-sm font-medium">Real-time Pricing</div>
+            <div className="text-secondary text-sm font-medium">Real-time Pool Metrics</div>
           </motion.div>
 
           <motion.div
@@ -64,7 +64,7 @@ export default function ProductDisplay() {
             transition={{ duration: 0.6, delay: 1 }}
             className="absolute -top-4 -right-4 bg-cyan-500/20 backdrop-blur-sm border border-cyan-500/30 rounded-xl p-3"
           >
-            <div className="text-cyan-400 text-sm font-medium">Deep Liquidity</div>
+            <div className="text-cyan-400 text-sm font-medium">Adding and Removing Liquidity</div>
           </motion.div>
 
           <motion.div

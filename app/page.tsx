@@ -9,7 +9,6 @@ import HowToSection from "@/components/how-to-section"
 import FeaturesSection from "@/components/features-section"
 import Footer from "@/components/footer"
 import AnimatedBackground from "@/components/animated-background"
-import Header from "@/components/header"
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
@@ -21,7 +20,7 @@ export default function HomePage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#a5f10d] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

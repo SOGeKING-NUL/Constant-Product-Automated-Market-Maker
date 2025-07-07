@@ -2,6 +2,9 @@
 
 import { motion, useInView } from "framer-motion"
 import { useRef } from "react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+
 
 export default function FeaturesSection() {
   const ref = useRef(null)
@@ -10,17 +13,17 @@ export default function FeaturesSection() {
   const features = [
     {
       title: "LIQUIDITY",
-      description: "Deep liquidity pools ensure minimal slippage and optimal trading conditions for all participants.",
+      description: "A liquidity pools for the WETH/USDC Token Pair ensuring consistent interactions with the contaract.",
       icon: "💧",
     },
     {
-      title: "TRADING CURVE",
-      description: "Advanced mathematical models optimize price discovery and reduce impermanent loss.",
+      title: "MOCK MODE",
+      description: "Toggle between a Mock mode to test interactions and then a Live mode to actual contribute to the liquidity pool or swap tokens",
       icon: "📈",
     },
     {
       title: "TOKEN SWAPS",
-      description: "Seamless token exchanges with instant settlement and competitive fees.",
+      description: "Seamless token exchanges with instant settlement with Price impace analysis.",
       icon: "🔄",
     },
   ]
@@ -37,7 +40,7 @@ export default function FeaturesSection() {
         >
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight mb-6">Core Features</h2>
           <p className="text-xl text-white/70 font-light max-w-2xl mx-auto">
-            Built for the future of decentralized finance
+            Learn About AMMs
           </p>
         </motion.div>
 
@@ -65,20 +68,16 @@ export default function FeaturesSection() {
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="text-center mt-16"
-        >
-          <div className="flex flex-wrap justify-center gap-8 text-secondary font-light tracking-widest text-lg">
-            <span>LIQUIDITY</span>
-            <span className="text-white/30">•</span>
-            <span>TRADING CURVE</span>
-            <span className="text-white/30">•</span>
-            <span>TOKEN SWAPS</span>
-          </div>
-        </motion.div>
+        <div className="mt-20 flex justify-center">
+          <Button
+            size="lg"
+            className="bg-secondary text-black hover:bg-secondary/90 font-medium px-10 py-6 text-xl rounded-full transition-all duration-300 hover:scale-105"
+          >
+            <Link href="/liquidity">
+              Get Started
+            </Link>
+          </Button>
+        </div>
       </div>
     </section>
   )

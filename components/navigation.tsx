@@ -18,8 +18,8 @@ export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
 
-  const { open, close } = useAppKit() // Added close function
-  const { address, isConnected, chain, isConnecting } = useAccount() // Added isConnecting
+  const { open } = useAppKit()
+  const { address, isConnected, chain } = useAccount()
   const { disconnect } = useDisconnect()
   
   // Use AMM context for mode toggle
@@ -36,15 +36,6 @@ export default function Navigation() {
 
   const isCorrectNetwork = chain?.id === 84532
 
-  // Handle wallet connection state changes
-  useEffect(() => {
-    if (isConnected && address) {
-      // Close the modal when wallet is successfully connected
-      close()
-    }
-  }, [isConnected, address, close])
-
-  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
@@ -53,25 +44,6 @@ export default function Navigation() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
-
-  // Handle wallet connection with proper state management
-  const handleConnectWallet = async () => {
-    try {
-      await open()
-    } catch (error) {
-      console.error('Failed to open wallet modal:', error)
-    }
-  }
-
-  // Handle disconnect with modal cleanup
-  const handleDisconnect = async () => {
-    try {
-      await disconnect()
-      close() // Ensure modal is closed after disconnect
-    } catch (error) {
-      console.error('Failed to disconnect wallet:', error)
-    }
-  }
 
   const navItems = [
     { name: "Home", href: "/" },
@@ -91,12 +63,12 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo (Left) */}
-          <motion.div whileHover={{ scale: 1.05 }} className="text-2xl font-light tracking-tight">
-            <Link href="/">AMM</Link>
+          <motion.div whileHover={{ scale: 1.05 }} className="text-2xl font-light tracking-tight flex-shrink-0">
+            <Link href="/">x . y = k</Link>
           </motion.div>
 
           {/* Desktop Navigation (Centered) */}
-          <div className="hidden md:flex items-center justify-center flex-1">
+          <div className="hidden md:flex flex-1 justify-center">
             <div className="flex items-center space-x-8">
               {navItems.map((item) => (
                 <Link
@@ -113,7 +85,7 @@ export default function Navigation() {
           </div>
 
           {/* Desktop Controls (Right) */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3 flex-shrink-0">
             
             {/* Mock/Live Toggle Button */}
             <div className="flex items-center">
@@ -140,14 +112,8 @@ export default function Navigation() {
 
             {/* Wallet Section */}
             {!isConnected ? (
-              <Button 
-                onClick={handleConnectWallet} 
-                disabled={isConnecting}
-                variant="default" 
-                size="sm" 
-                className="flex items-center gap-2"
-              >
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              <Button onClick={() => open()} variant="default" size="sm" className="flex items-center gap-2">
+                Connect Wallet
               </Button>
             ) : (
               <div className="flex items-center gap-2">
@@ -165,10 +131,7 @@ export default function Navigation() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem 
-                      onClick={handleDisconnect} 
-                      className="flex items-center gap-2 text-destructive cursor-pointer"
-                    >
+                    <DropdownMenuItem onClick={() => disconnect()} className="flex items-center gap-2 text-destructive cursor-pointer">
                       <LogOut className="h-4 w-4" />
                       Disconnect
                     </DropdownMenuItem>
@@ -253,14 +216,8 @@ export default function Navigation() {
               {/* Mobile Wallet Button Section */}
               <div className="pt-4 border-t border-white/10 flex justify-center">
                 {!isConnected ? (
-                  <Button 
-                    onClick={handleConnectWallet} 
-                    disabled={isConnecting}
-                    variant="default" 
-                    size="sm" 
-                    className="flex items-center gap-2"
-                  >
-                    {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                  <Button onClick={() => open()} variant="default" size="sm" className="flex items-center gap-2">
+                    Connect Wallet
                   </Button>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -278,10 +235,7 @@ export default function Navigation() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem 
-                          onClick={handleDisconnect} 
-                          className="flex items-center gap-2 text-destructive cursor-pointer"
-                        >
+                        <DropdownMenuItem onClick={() => disconnect()} className="flex items-center gap-2 text-destructive cursor-pointer">
                           <LogOut className="h-4 w-4" />
                           Disconnect
                         </DropdownMenuItem>
