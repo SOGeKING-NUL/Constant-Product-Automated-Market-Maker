@@ -162,7 +162,7 @@ export default function PoolStatistics({
             <div className="text-center flex-1 flex flex-col">
             <div className="text-white/60 text-sm mb-3">Your Pool Share</div>
             <div className="bg-black/20 rounded-lg p-4 flex-1 flex flex-col justify-center">
-                <div className="text-2xl font-medium text-[#a5f10d] mb-1">
+                <div className="text-2xl font-medium text-secondary mb-1">
                 {(userPoolSharePercentage / 100).toFixed(2)}%
                 </div>
                 <div className="text-sm text-white/60">

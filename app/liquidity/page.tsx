@@ -48,7 +48,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const data = payload[0].payload
     return (
       <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-lg p-3 text-sm">
-        <p className="text-[#a5f10d] font-medium">{data.isCurrent ? "Current Pool Position" : "Curve Point"}</p>
+        <p className="text-secondary font-medium">{data.isCurrent ? "Current Pool Position" : "Curve Point"}</p>
         <p className="text-white">WETH: {label}</p>
         <p className="text-white">USDC: {payload[0].value.toFixed(2)}</p>
         <p className="text-cyan-400">k = {(label * payload[0].value).toFixed(0)}</p>
@@ -400,7 +400,7 @@ export default function LiquidityPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#a5f10d] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -490,7 +490,7 @@ export default function LiquidityPage() {
                 >
                   <Card className="bg-white/5 backdrop-blur-md border-white/10">
                     <CardHeader>
-                      <CardTitle className="text-[#a5f10d] text-xl font-light">
+                      <CardTitle className="text-secondary text-xl font-light">
                         Constant Product Curve (x × y = k)
                       </CardTitle>
                       <CardDescription className="text-white/60">
@@ -571,7 +571,7 @@ export default function LiquidityPage() {
                         <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-white/10 rounded-none">
                           <TabsTrigger
                             value="add"
-                            className="data-[state=active]:bg-[#a5f10d]/20 data-[state=active]:text-[#a5f10d] text-white/60 rounded-none"
+                            className="data-[state=active]:bg-secondary/20 data-[state=active]:text-secondary text-white/60 rounded-none"
                           >
                             Add Liquidity
                           </TabsTrigger>
@@ -619,7 +619,7 @@ export default function LiquidityPage() {
                                 />
                                 <button 
                                   onClick={() => handleWETHChange(userBalances.weth.toString())}
-                                  className="absolute right-0 text-[#a5f10d] text-xs font-medium hover:text-[#a5f10d]/80 bg-black/20 px-2 py-1 rounded"
+                                  className="absolute right-0 text-secondary text-xs font-medium hover:text-secondary/80 bg-black/20 px-2 py-1 rounded"
                                 >
                                   MAX
                                 </button>
@@ -717,7 +717,7 @@ export default function LiquidityPage() {
                           {liquidityWETH && liquidityUSDC && (
                             <div className="bg-black/20 rounded-lg p-4">
                               <h4 className="text-white/60 text-sm mb-2">You will receive</h4>
-                              <div className="text-lg font-medium text-[#a5f10d]">
+                              <div className="text-lg font-medium text-secondary">
                                 {poolState.totalLPSupply === 0 
                                   ? Math.sqrt(parseFloat(liquidityWETH) * parseFloat(liquidityUSDC)).toFixed(18)
                                   : Math.min(
@@ -742,7 +742,7 @@ export default function LiquidityPage() {
                               (isLiveMode && isConnected && (wethNeedsApproval || usdcNeedsApproval)) ||
                               !ratioValidation.isValid
                             }
-                            className="w-full bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90 py-6 text-lg font-medium"
+                            className="w-full bg-secondary text-black hover:bg-secondary/90 py-6 text-lg font-medium"
                           >
                             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                             Add Liquidity
@@ -892,13 +892,13 @@ export default function LiquidityPage() {
             >
               <Card className="bg-white/5 backdrop-blur-md border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-[#a5f10d] text-2xl font-light">Understanding AMM Mechanics</CardTitle>
+                  <CardTitle className="text-secondary text-2xl font-light">Understanding AMM Mechanics</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <h3 className="text-xl font-light mb-3 text-white">Constant Product Formula</h3>
                     <p className="text-white/70 leading-relaxed text-sm">
-                      The hyperbola represents <span className="text-[#a5f10d] font-mono">x × y = k</span>, ensuring the
+                      The hyperbola represents <span className="text-secondary font-mono">x × y = k</span>, ensuring the
                       product of reserves remains constant during trades. This mathematical relationship creates
                       automatic price discovery.
                     </p>

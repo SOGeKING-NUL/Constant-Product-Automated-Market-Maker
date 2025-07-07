@@ -20,13 +20,13 @@ export default function ProductMockup() {
           {/* Glassmorphic Container */}
           <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 sm:p-12 overflow-hidden">
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#a5f10d]/10 via-transparent to-cyan-500/10 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
             {/* Mock Trading Interface */}
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
               <div className="space-y-6">
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-xl font-light mb-4 text-[#a5f10d]">Swap Tokens</h3>
+                  <h3 className="text-xl font-light mb-4 text-secondary">Swap Tokens</h3>
                   <div className="space-y-4">
                     <div className="bg-black/20 rounded-xl p-4 border border-white/5">
                       <div className="flex justify-between items-center mb-2">
@@ -34,7 +34,7 @@ export default function ProductMockup() {
                         <span className="text-white/60 text-sm">Balance: 1,234.56</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#a5f10d] rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
                           <span className="text-black font-bold text-sm">E</span>
                         </div>
                         <span className="text-white font-medium">ETH</span>
@@ -67,7 +67,7 @@ export default function ProductMockup() {
                     </div>
                   </div>
 
-                  <button className="w-full mt-6 bg-[#a5f10d] text-black font-medium py-4 rounded-xl hover:bg-[#a5f10d]/90 transition-colors">
+                  <button className="w-full mt-6 bg-secondary text-black font-medium py-4 rounded-xl hover:bg-secondary/90 transition-colors">
                     Swap Tokens
                   </button>
                 </div>
@@ -75,7 +75,7 @@ export default function ProductMockup() {
 
               <div className="space-y-6">
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-xl font-light mb-4 text-[#a5f10d]">Liquidity Pool</h3>
+                  <h3 className="text-xl font-light mb-4 text-secondary">Liquidity Pool</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Total Value Locked</span>
@@ -87,13 +87,13 @@ export default function ProductMockup() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">APY</span>
-                      <span className="text-[#a5f10d] font-medium">24.7%</span>
+                      <span className="text-secondary font-medium">24.7%</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-xl font-light mb-4 text-[#a5f10d]">Your Position</h3>
+                  <h3 className="text-xl font-light mb-4 text-secondary">Your Position</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Pool Share</span>
@@ -105,7 +105,7 @@ export default function ProductMockup() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Unclaimed Fees</span>
-                      <span className="text-[#a5f10d] font-medium">$127.43</span>
+                      <span className="text-secondary font-medium">$127.43</span>
                     </div>
                   </div>
                 </div>

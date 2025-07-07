@@ -33,7 +33,7 @@ export default function ProductDisplay() {
           {/* Glassmorphic Container */}
           <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 sm:p-8 overflow-hidden">
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#a5f10d]/10 via-transparent to-cyan-500/10 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
             {/* Product Demo Image */}
             <div className="relative z-10">
@@ -53,9 +53,9 @@ export default function ProductDisplay() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.6, delay: 0.8 }}
-            className="absolute -top-4 -left-4 bg-[#a5f10d]/20 backdrop-blur-sm border border-[#a5f10d]/30 rounded-xl p-3"
+            className="absolute -top-4 -left-4 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-xl p-3"
           >
-            <div className="text-[#a5f10d] text-sm font-medium">Real-time Pricing</div>
+            <div className="text-secondary text-sm font-medium">Real-time Pricing</div>
           </motion.div>
 
           <motion.div

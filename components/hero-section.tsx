@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function HeroSection() {
   const containerVariants = {
@@ -57,11 +58,11 @@ export default function HeroSection() {
             className="text-left lg:text-left relative z-20"
           >
             <motion.div variants={itemVariants} className="mb-8">
-              <h1 className="text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem] font-light tracking-tighter mb-6 leading-none">
-                AMM
-              </h1>
-              <p className="text-[#a5f10d] text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-widest uppercase">
-                Automated Market Making
+              <h3 className="text-7xl sm:text-8xl md:text-9xl lg:text-10xl xl:text-[10rem] font-light tracking-tighter mb-6 leading-none">
+                x . y = k
+              </h3>
+              <p className="text-secondary text-lg sm:text-xl md:text-2xl lg:text-3xl font-light tracking-widest uppercase">
+                Automated Market Maker
               </p>
             </motion.div>
 
@@ -69,35 +70,30 @@ export default function HeroSection() {
               variants={itemVariants}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light tracking-tight leading-tight mb-10"
             >
-              STREAMLINE
+              VISUALISING
               <br />
-              DECENTRALIZED
+              HOW AMM's
               <br />
-              TRADING
+              WORK
             </motion.h2>
 
             <motion.p
               variants={itemVariants}
               className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white/70 font-light leading-relaxed mb-12 max-w-2xl"
             >
-              Enhance liquidity and facilitate seamless
+              Test How Adding, Removing and Swapping Tokens Influences a
               <br />
-              token swaps with AMM technology
+              Liquidity Pool
             </motion.p>
 
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-6">
               <Button
                 size="lg"
-                className="bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90 font-medium px-10 py-6 text-xl rounded-full transition-all duration-300 hover:scale-105"
+                className="bg-secondary text-black hover:bg-secondary/90 font-medium px-10 py-6 text-xl rounded-full transition-all duration-300 hover:scale-105"
               >
-                Get Started
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-white/30 text-white hover:bg-white/10 bg-transparent font-medium px-10 py-6 text-xl rounded-full transition-all duration-300 hover:scale-105"
-              >
-                Learn More
+                <Link href="/liquidity">
+                  Get Started
+                </Link>
               </Button>
             </motion.div>
           </motion.div>

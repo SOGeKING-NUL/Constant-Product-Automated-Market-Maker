@@ -60,7 +60,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   const data = payload[0].payload
   return (
     <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-lg p-3 text-sm">
-      <p className="text-[#a5f10d] font-medium">
+      <p className="text-secondary font-medium">
         {data.isCurrent ? "Current Pool Position" : "Curve Point"}
       </p>
       <p className="text-white">WETH&nbsp;: {label}</p>
@@ -222,7 +222,7 @@ export default function SwapPage() {
   if (!mounted)
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#a5f10d] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
       </div>
     )
 
@@ -299,7 +299,7 @@ export default function SwapPage() {
               <div className="lg:col-span-2 space-y-5">
                 <Card className="bg-white/5 backdrop-blur-md border-white/10">
                   <CardHeader>
-                    <CardTitle className="text-[#a5f10d] text-xl font-light">
+                    <CardTitle className="text-secondary text-xl font-light">
                       Trading Curve (x × y = k)
                     </CardTitle>
                     <CardDescription className="text-white/60">
@@ -408,7 +408,7 @@ export default function SwapPage() {
                           />
                           <button
                             onClick={setMaxAmount}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 text-[#a5f10d] text-xs font-medium hover:text-[#a5f10d]/80 bg-black/20 px-2 py-1 rounded"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 text-secondary text-xs font-medium hover:text-secondary/80 bg-black/20 px-2 py-1 rounded"
                           >
                             MAX
                           </button>
@@ -468,7 +468,7 @@ export default function SwapPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-white/60">Price Impact:</span>
-                          <span className={Math.abs(priceImpact) > 5 ? "text-red-400" : "text-[#a5f10d]"}>
+                          <span className={Math.abs(priceImpact) > 5 ? "text-red-400" : "text-secondary"}>
                             {priceImpact.toFixed(2)}%
                           </span>
                         </div>
@@ -517,7 +517,7 @@ export default function SwapPage() {
                           (isLiveMode && !isConnected) ||
                           fromToken === toToken
                         }
-                        className="w-full bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90 font-medium py-6 text-lg"
+                        className="w-full bg-secondary text-black hover:bg-secondary/90 font-medium py-6 text-lg"
                       >
                         {isLoading ? (
                           <>

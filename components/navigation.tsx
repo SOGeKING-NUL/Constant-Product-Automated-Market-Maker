@@ -64,7 +64,7 @@ return (
       <div className="flex items-center justify-between h-16">
         {/* Logo (Left) */}
         <motion.div whileHover={{ scale: 1.05 }} className="text-2xl font-light tracking-tight">
-          <Link href="/">AMM</Link>
+          <Link href="/">x . y = k</Link>
         </motion.div>
 
         {/* Desktop Navigation (Centered) */}
@@ -75,7 +75,7 @@ return (
                 key={item.name}
                 href={item.href}
                 className={`transition-colors duration-200 font-light tracking-wide ${
-                  pathname === item.href ? "text-[#a5f10d]" : "text-white/80 hover:text-[#a5f10d]"
+                  pathname === item.href ? "text-secondary" : "text-white/80 hover:text-secondary"
                 }`}
               >
                 {item.name}
@@ -95,14 +95,14 @@ return (
               size="sm"
               className={`relative bg-transparent border transition-all duration-300 ${
                 isLiveMode
-                  ? "border-[#a5f10d] text-[#a5f10d] hover:bg-[#a5f10d]/10"
+                  ? "border-secondary text-secondary hover:bg-secondary/10"
                   : "border-white/30 text-white/80 hover:bg-white/10"
               }`}
             >
               <div className="flex items-center gap-2">
                 <div
                   className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                    isLiveMode ? "bg-[#a5f10d] animate-pulse" : "bg-white/60"
+                    isLiveMode ? "bg-secondary animate-pulse" : "bg-white/60"
                   }`}
                 />
                 <span className="font-light tracking-wide">{isLiveMode ? "LIVE" : "MOCK"}</span>
@@ -151,14 +151,14 @@ return (
               size="sm"
               className={`relative bg-transparent border transition-all duration-300 ${
                 isLiveMode
-                  ? "border-[#a5f10d] text-[#a5f10d] hover:bg-[#a5f10d]/10"
+                  ? "border-secondary text-secondary hover:bg-secondary/10"
                   : "border-white/30 text-white/80 hover:bg-white/10"
               }`}
             >
               <div className="flex items-center gap-2">
                 <div
                   className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                    isLiveMode ? "bg-[#a5f10d] animate-pulse" : "bg-white/60"
+                    isLiveMode ? "bg-secondary animate-pulse" : "bg-white/60"
                   }`}
                 />
                 <span className="font-light tracking-wide">{isLiveMode ? "LIVE" : "MOCK"}</span>
@@ -169,7 +169,7 @@ return (
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-white/80 hover:text-[#a5f10d] transition-colors"
+            className="md:hidden p-2 text-white/80 hover:text-secondary transition-colors"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -193,7 +193,7 @@ return (
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block w-full text-left py-2 transition-colors duration-200 font-light tracking-wide ${
-                  pathname === item.href ? "text-[#a5f10d]" : "text-white/80 hover:text-[#a5f10d]"
+                  pathname === item.href ? "text-secondary" : "text-white/80 hover:text-secondary"
                 }`}
               >
                 {item.name}
@@ -208,7 +208,7 @@ return (
                   variant="outline"
                   className={`transition-all duration-300 ${
                     isLiveMode 
-                      ? "border-[#a5f10d] text-[#a5f10d] bg-[#a5f10d]/10" 
+                      ? "border-secondary text-secondary bg-secondary/10" 
                       : "border-white/30 text-white/80 bg-white/5"
                   }`}
                 >
@@ -222,14 +222,14 @@ return (
                 size="sm"
                 className={`w-full bg-transparent border transition-all duration-300 ${
                   isLiveMode
-                    ? "border-[#a5f10d] text-[#a5f10d] hover:bg-[#a5f10d]/10"
+                    ? "border-secondary text-secondary hover:bg-secondary/10"
                     : "border-white/30 text-white/80 hover:bg-white/10"
                 }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <div
                     className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                      isLiveMode ? "bg-[#a5f10d] animate-pulse" : "bg-white/60"
+                      isLiveMode ? "bg-secondary animate-pulse" : "bg-white/60"
                     }`}
                   />
                   <span className="font-light tracking-wide">

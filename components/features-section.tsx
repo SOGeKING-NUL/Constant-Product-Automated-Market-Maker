@@ -54,11 +54,11 @@ export default function FeaturesSection() {
               }}
               className="group"
             >
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 h-full hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-[#a5f10d]/30">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 h-full hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-secondary/30">
                 <div className="text-4xl mb-6 group-hover:scale-110 transition-transform duration-300">
                   {feature.icon}
                 </div>
-                <h3 className="text-2xl font-light tracking-wide mb-4 text-[#a5f10d]">{feature.title}</h3>
+                <h3 className="text-2xl font-light tracking-wide mb-4 text-secondary">{feature.title}</h3>
                 <p className="text-white/70 font-light leading-relaxed">{feature.description}</p>
               </div>
             </motion.div>
@@ -71,7 +71,7 @@ export default function FeaturesSection() {
           transition={{ duration: 0.8, delay: 0.8 }}
           className="text-center mt-16"
         >
-          <div className="flex flex-wrap justify-center gap-8 text-[#a5f10d] font-light tracking-widest text-lg">
+          <div className="flex flex-wrap justify-center gap-8 text-secondary font-light tracking-widest text-lg">
             <span>LIQUIDITY</span>
             <span className="text-white/30">•</span>
             <span>TRADING CURVE</span>

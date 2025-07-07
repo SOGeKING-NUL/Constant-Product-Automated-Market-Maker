@@ -32,17 +32,17 @@ export default function HowToSection() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative group cursor-pointer"
           >
-            <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden hover:border-[#a5f10d]/30 transition-all duration-300">
+            <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden hover:border-secondary/30 transition-all duration-300">
               {/* Video Placeholder */}
-              <div className="aspect-video bg-gradient-to-br from-[#a5f10d]/20 via-transparent to-cyan-500/20 flex items-center justify-center">
-                <div className="w-20 h-20 bg-[#a5f10d]/20 backdrop-blur-sm border border-[#a5f10d]/30 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Play className="w-8 h-8 text-[#a5f10d] ml-1" fill="currentColor" />
+              <div className="aspect-video bg-gradient-to-br from-secondary/20 via-transparent to-cyan-500/20 flex items-center justify-center">
+                <div className="w-20 h-20 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Play className="w-8 h-8 text-secondary ml-1" fill="currentColor" />
                 </div>
               </div>
 
               {/* Video Info */}
               <div className="p-6">
-                <h3 className="text-xl font-light mb-2 text-[#a5f10d]">Getting Started with AMM</h3>
+                <h3 className="text-xl font-light mb-2 text-secondary">Getting Started with AMM</h3>
                 <p className="text-white/70 font-light">A comprehensive guide to trading and providing liquidity</p>
                 <div className="flex items-center gap-4 mt-4 text-sm text-white/50">
                   <span>5:32</span>
@@ -84,8 +84,8 @@ export default function HowToSection() {
                 transition={{ duration: 0.6, delay: 0.6 + index * 0.2 }}
                 className="flex items-start gap-4"
               >
-                <div className="w-12 h-12 bg-[#a5f10d]/20 backdrop-blur-sm border border-[#a5f10d]/30 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-[#a5f10d] font-medium">{item.step}</span>
+                <div className="w-12 h-12 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-secondary font-medium">{item.step}</span>
                 </div>
                 <div>
                   <h3 className="text-xl font-light mb-2">{item.title}</h3>
