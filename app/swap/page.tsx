@@ -243,19 +243,17 @@ export default function SwapPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">SW</span>
-                </div>
+                <Image
+                  src="/LPToken.jpg"
+                  alt="LP Token"
+                  width={50}
+                  height={50}
+                  className="rounded-full border-2 border-black"
+                />
                 <div>
                   <h1 className="text-3xl font-light">WETH / USDC Token Swap</h1>
-                  <p className="text-white/60 mt-1">
-                    Exchange tokens at optimal rates
-                  </p>
                 </div>
               </div>
-              <Badge variant={isMockMode ? "secondary" : "default"} className="text-lg px-4 py-2">
-                {mode.toUpperCase()} MODE
-              </Badge>
             </div>
 
             {/* Alerts */}

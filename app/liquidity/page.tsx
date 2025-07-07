@@ -428,17 +428,18 @@ export default function LiquidityPage() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">LP</span>
-                  </div>
+                  <Image
+                    src="/LPToken.jpg"
+                    alt="LP Token"
+                    width={50}
+                    height={50}
+                    className="rounded-full border-2 border-black"
+                  />
+
                   <div>
                     <h1 className="text-3xl font-light">WETH / USDC Liquidity Pool</h1>
-                    <p className="text-white/60 mt-1">Manage your liquidity position</p>
                   </div>
                 </div>
-                <Badge variant={isMockMode ? "secondary" : "default"} className="text-lg px-4 py-2">
-                  {mode.toUpperCase()} MODE
-                </Badge>
               </div>
             </motion.div>
 
@@ -762,7 +763,7 @@ export default function LiquidityPage() {
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2 rounded-lg px-3 py-2">
                                 <Image
-                                  src="/LPToken.png"
+                                  src="/LPToken.jpg"
                                   alt="LP Token"
                                   width={20}
                                   height={20}
@@ -787,7 +788,7 @@ export default function LiquidityPage() {
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2 rounded-lg px-3 py-2">
                                 <Image
-                                  src="/LPToken.png"
+                                  src="/LPToken.jpg"
                                   alt="LP Token"
                                   width={20}
                                   height={20}
