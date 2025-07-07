@@ -9,37 +9,35 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { ChevronRight, Share, Settings, Loader2, AlertCircle, CheckCircle2, RefreshCw, Calculator } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAMM } from "@/contexts/AMMContext"
+import { Badge } from "@/components/ui/badge"
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
 import { parseUnits, formatUnits, Address } from 'viem'
 import { ERC20_ABI } from '@/lib/abis'
+import { useAMM } from '@/contexts/AMMContext'
+import { Loader2, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react'
+import PoolStatistics from '@/components/PoolStatistics'
+import Image from "next/image"
+
 
 // Contract addresses
 const CONTRACTS = {
   AMM: process.env.NEXT_PUBLIC_AMM_CONTRACT_ADDRESS as Address,
   WETH: '0x4200000000000000000000000000000000000006' as Address,
   USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,
-} as const;
+} as const
 
 const DECIMALS = {
   WETH: 18,
   USDC: 6,
-} as const;
+} as const
 
 // Custom dot component for highlighting current position
 const CustomDot = (props: any) => {
   const { cx, cy, payload } = props
   if (payload?.isCurrent) {
-    return (
-      <g>
-        <circle cx={cx} cy={cy} r={10} fill="#00bcd4" stroke="#ffffff" strokeWidth={3} className="animate-pulse" />
-        <circle cx={cx} cy={cy} r={15} fill="none" stroke="#00bcd4" strokeWidth={2} opacity={0.6} />
-      </g>
-    )
+    return <circle cx={cx} cy={cy} r={8} fill="#00bcd4" stroke="#ffffff" strokeWidth={3} className="animate-pulse" />
   }
   return null
 }
@@ -49,36 +47,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
-      <div className="bg-black/95 backdrop-blur-md border border-white/30 rounded-lg p-4 text-sm shadow-xl">
-        <p className="text-[#a5f10d] font-semibold text-base mb-2">{data.isCurrent ? "🎯 Current Pool Position" : "📊 Curve Point"}</p>
-        <div className="space-y-1">
-          <p className="text-white font-medium">WETH: <span className="text-blue-300">{label}</span></p>
-          <p className="text-white font-medium">USDC: <span className="text-green-300">{payload[0].value.toFixed(2)}</span></p>
-          <p className="text-cyan-400 font-medium">k = <span className="text-yellow-300">{(label * payload[0].value).toFixed(0)}</span></p>
-        </div>
+      <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-lg p-3 text-sm">
+        <p className="text-[#a5f10d] font-medium">{data.isCurrent ? "Current Pool Position" : "Curve Point"}</p>
+        <p className="text-white">WETH: {label}</p>
+        <p className="text-white">USDC: {payload[0].value.toFixed(2)}</p>
+        <p className="text-cyan-400">k = {(label * payload[0].value).toFixed(0)}</p>
       </div>
     )
   }
   return null
 }
 
-// Helper function to safely format numbers for parseUnits
-const safeNumberToString = (num: number, decimals: number = 18): string => {
-  // Convert to fixed decimal string to avoid scientific notation
-  return num.toFixed(decimals);
-};
-
-// Helper function to format LP token balance with full precision
-const formatLPTokenBalance = (balance: number): string => {
-  // Show full 18 decimal precision for LP tokens
-  return balance.toFixed(18);
-};
-
 export default function LiquidityPage() {
   const [mounted, setMounted] = useState(false)
   const { address, isConnected } = useAccount()
-  
-  // Direct context access without unnecessary memoization (Fix 1)
+
+  // AMM Context integration
   const {
     mode,
     isMockMode,
@@ -89,303 +73,325 @@ export default function LiquidityPage() {
     currentPrice,
     addLiquidity,
     removeLiquidity,
+    calculateRemovalAmounts,
+    getUserPoolShare,
     resetPool,
     refreshUserBalances,
     isLoading,
-    error
+    error,
+    pendingTransaction
   } = useAMM()
 
-  // Local state for inputs
-  const [liquidityAmountWETH, setLiquidityAmountWETH] = useState('')
-  const [liquidityAmountUSDC, setLiquidityAmountUSDC] = useState('')
-  const [removeLiquidityShares, setRemoveLiquidityShares] = useState('')
-  
-  // Auto-calculation states
-  const [autoCalculateRatio, setAutoCalculateRatio] = useState(true)
-  const [manualMode, setManualMode] = useState(false)
+  // Form states
+  const [liquidityWETH, setLiquidityWETH] = useState('')
+  const [liquidityUSDC, setLiquidityUSDC] = useState('')
+  const [removeShares, setRemoveShares] = useState('')
+
+  const poolShare = address ? getUserPoolShare(address) : 0; // value from 0-100
 
   // Approval states
-  const [wethApprovalPending, setWethApprovalPending] = useState(false)
-  const [usdcApprovalPending, setUsdcApprovalPending] = useState(false)
+  const [approvingWETH, setApprovingWETH] = useState(false)
+  const [approvingUSDC, setApprovingUSDC] = useState(false)
 
-  // Contract interaction hooks
-  const { writeContract, data: hash, isPending: isWritePending } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
+  // Wagmi hooks for approvals
+  const { writeContract: writeApproval, data: approvalHash, isPending: isApprovalPending } = useWriteContract()
+  const { isLoading: isApprovalConfirming, isSuccess: isApprovalConfirmed } = useWaitForTransactionReceipt({
+    hash: approvalHash,
+  })
 
-  // Read allowances
-  const { data: wethAllowance, refetch: refetchWETHAllowance } = useReadContract({
+  // Read current allowances
+  const { data: wethAllowance, refetch: refetchWethAllowance } = useReadContract({
     address: CONTRACTS.WETH,
     abi: ERC20_ABI,
     functionName: 'allowance',
-    args: address ? [address, CONTRACTS.AMM] : undefined,
+    args: address && CONTRACTS.AMM ? [address, CONTRACTS.AMM] : undefined,
     query: {
       enabled: isLiveMode && isConnected && !!address,
-      refetchInterval: false
     }
-  });
+  })
 
-  const { data: usdcAllowance, refetch: refetchUSDCAllowance } = useReadContract({
+  const { data: usdcAllowance, refetch: refetchUsdcAllowance } = useReadContract({
     address: CONTRACTS.USDC,
     abi: ERC20_ABI,
     functionName: 'allowance',
-    args: address ? [address, CONTRACTS.AMM] : undefined,
+    args: address && CONTRACTS.AMM ? [address, CONTRACTS.AMM] : undefined,
     query: {
       enabled: isLiveMode && isConnected && !!address,
-      refetchInterval: false
     }
-  });
+  })
 
-  // Get the full precision LP token balance
-  const fullLPTokenBalance = userBalances.lpToken;
-  const formattedLPBalance = formatLPTokenBalance(fullLPTokenBalance);
+  // Generate hyperbola curve data using real pool state
+  const generateCurveData = useCallback(() => {
+    const data: Array<{
+      x: number;
+      curveY: number;
+      isCurrent: boolean;
+    }> = []
+    if (k === 0) return data
 
-  // Calculate required amount based on current pool ratio
-  const calculateRequiredAmount = useCallback((inputToken: 'WETH' | 'USDC', inputAmount: string): string => {
-    if (!inputAmount || isNaN(parseFloat(inputAmount)) || parseFloat(inputAmount) <= 0) {
-      return '';
-    }
-
-    if (poolState.reserve0 <= 0 || poolState.reserve1 <= 0) {
-      return '';
-    }
-
-    const amount = parseFloat(inputAmount);
-    
-    if (inputToken === 'WETH') {
-      const requiredUSDC = (amount * poolState.reserve1) / poolState.reserve0;
-      return requiredUSDC.toFixed(6);
-    } else {
-      const requiredWETH = (amount * poolState.reserve0) / poolState.reserve1;
-      return requiredWETH.toFixed(18);
-    }
-  }, [poolState.reserve0, poolState.reserve1]);
-
-  // Handle WETH input change with auto-calculation
-  const handleWETHChange = useCallback((value: string) => {
-    setLiquidityAmountWETH(value);
-    
-    if (autoCalculateRatio && !manualMode && value && !isNaN(parseFloat(value))) {
-      const requiredUSDC = calculateRequiredAmount('WETH', value);
-      if (requiredUSDC) {
-        setLiquidityAmountUSDC(requiredUSDC);
-      }
-    }
-  }, [autoCalculateRatio, manualMode, calculateRequiredAmount]);
-
-  // Handle USDC input change with auto-calculation
-  const handleUSDCChange = useCallback((value: string) => {
-    setLiquidityAmountUSDC(value);
-    
-    if (autoCalculateRatio && !manualMode && value && !isNaN(parseFloat(value))) {
-      const requiredWETH = calculateRequiredAmount('USDC', value);
-      if (requiredWETH) {
-        setLiquidityAmountWETH(requiredWETH);
-      }
-    }
-  }, [autoCalculateRatio, manualMode, calculateRequiredAmount]);
-
-  // Check if tokens need approval
-  const needsWETHApproval = useMemo(() => {
-    if (!liquidityAmountWETH || !isLiveMode || !isConnected) return false;
-    try {
-      const requiredAmount = parseUnits(safeNumberToString(parseFloat(liquidityAmountWETH), 18), DECIMALS.WETH);
-      return !wethAllowance || (wethAllowance as bigint) < requiredAmount;
-    } catch {
-      return true;
-    }
-  }, [liquidityAmountWETH, isLiveMode, isConnected, wethAllowance]);
-
-  const needsUSDCApproval = useMemo(() => {
-    if (!liquidityAmountUSDC || !isLiveMode || !isConnected) return false;
-    try {
-      const requiredAmount = parseUnits(safeNumberToString(parseFloat(liquidityAmountUSDC), 6), DECIMALS.USDC);
-      return !usdcAllowance || (usdcAllowance as bigint) < requiredAmount;
-    } catch {
-      return true;
-    }
-  }, [liquidityAmountUSDC, isLiveMode, isConnected, usdcAllowance]);
-
-  // Approve WETH function
-  const approveWETH = async () => {
-    if (!liquidityAmountWETH || !address || !isConnected) return;
-    
-    try {
-      setWethApprovalPending(true);
-      const amount = parseUnits(safeNumberToString(parseFloat(liquidityAmountWETH), 18), DECIMALS.WETH);
-
-      writeContract({
-        address: CONTRACTS.WETH,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [CONTRACTS.AMM, amount],
-      });
-    } catch (err) {
-      console.error('WETH approval failed:', err);
-      setWethApprovalPending(false);
-    }
-  };
-
-  // Approve USDC function
-  const approveUSDC = async () => {
-    if (!liquidityAmountUSDC || !address || !isConnected) return;
-    
-    try {
-      setUsdcApprovalPending(true);
-      const amount = parseUnits(safeNumberToString(parseFloat(liquidityAmountUSDC), 6), DECIMALS.USDC);
-
-      writeContract({
-        address: CONTRACTS.USDC,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [CONTRACTS.AMM, amount],
-      });
-    } catch (err) {
-      console.error('USDC approval failed:', err);
-      setUsdcApprovalPending(false);
-    }
-  };
-
-  // Handle transaction confirmation
-  useEffect(() => {
-    if (isConfirmed && hash) {
-      setWethApprovalPending(false);
-      setUsdcApprovalPending(false);
-      refetchWETHAllowance();
-      refetchUSDCAllowance();
-    }
-  }, [isConfirmed, hash]);
-
-  // Generate hyperbola curve data based on pool state
-  const generateCurveData = () => {
-    const data = []
-    const currentK = poolState.reserve0 * poolState.reserve1
-    
-    if (currentK === 0) return []
-
-    // Generate curve points around current reserves
-    const minX = Math.max(100, poolState.reserve0 * 0.2)
-    const maxX = poolState.reserve0 * 3
-    const step = (maxX - minX) / 100
-
-    for (let x = minX; x <= maxX; x += step) {
-      const y = currentK / x
+    for (let x = Math.max(200, poolState.reserve0 * 0.2); x <= poolState.reserve0 * 3; x += (poolState.reserve0 * 3 - poolState.reserve0 * 0.2) / 100) {
+      const y = k / x
       if (y > 0) {
         data.push({
           x: parseFloat(x.toFixed(2)),
           curveY: parseFloat(y.toFixed(2)),
-          isCurrent: Math.abs(x - poolState.reserve0) < step * 2,
+          isCurrent: Math.abs(x - poolState.reserve0) < (poolState.reserve0 * 0.05),
         })
       }
     }
-
-    // Ensure current position is included
-    if (!data.some(point => point.isCurrent)) {
-      data.push({
-        x: parseFloat(poolState.reserve0.toFixed(2)),
-        curveY: parseFloat(poolState.reserve1.toFixed(2)),
-        isCurrent: true,
-      })
-    }
-
-    return data.sort((a, b) => a.x - b.x)
-  }
+    return data
+  }, [k, poolState.reserve0])
 
   const curveData = generateCurveData()
 
-  // Enhanced add liquidity function
-  const handleAddLiquidity = async () => {
-    if (!liquidityAmountWETH || !liquidityAmountUSDC) return;
-    
-    const wethAmount = Number(liquidityAmountWETH);
-    const usdcAmount = Number(liquidityAmountUSDC);
-    
-    try {
-      // Execute the actual liquidity addition
-      await addLiquidity(wethAmount, usdcAmount);
-      setLiquidityAmountWETH('');
-      setLiquidityAmountUSDC('');
-    } catch (error) {
-      console.error('Add liquidity failed:', error);
+  // Calculate required amount based on pool ratio
+  const calculateRequiredAmount = useCallback((inputToken: 'WETH' | 'USDC', inputAmount: string): string => {
+    if (!inputAmount || isNaN(parseFloat(inputAmount)) || parseFloat(inputAmount) <= 0) {
+      return ''
     }
-  };
 
-  // Enhanced remove liquidity function with scientific notation fix
-  const handleRemoveLiquidity = async () => {
-    if (!removeLiquidityShares || Number(removeLiquidityShares) <= 0) return
-    
-    try {
-      const sharesAmount = Number(removeLiquidityShares);
-      
-      // Check for minimum threshold to prevent scientific notation issues
-      if (sharesAmount < 1e-15) {
-        alert('Amount too small. Please enter a larger amount.');
-        return;
-      }
-      
-      // Check if amount exceeds available balance
-      if (sharesAmount > fullLPTokenBalance) {
-        alert(`Amount exceeds your LP token balance of ${formattedLPBalance}`);
-        return;
-      }
-      
-      await removeLiquidity(sharesAmount);
-      setRemoveLiquidityShares('');
-    } catch (error: any) {
-      console.error('Remove liquidity failed:', error);
-      
-      // Handle specific scientific notation error
-      if (error.message?.includes('not a valid decimal number') || error.message?.includes('scientific notation')) {
-        alert('The amount entered is too small and cannot be processed. Please enter a larger amount (minimum 0.000001).');
-      } else {
-        alert(`Remove liquidity failed: ${error.message}`);
-      }
+    if (poolState.reserve0 <= 0 || poolState.reserve1 <= 0) {
+      return ''
     }
-  }
 
-  // Function to set max LP tokens for removal
-  const setMaxLPTokens = () => {
-    setRemoveLiquidityShares(formattedLPBalance);
-  };
+    const amount = parseFloat(inputAmount)
+    
+    if (inputToken === 'WETH') {
+      const requiredUSDC = (amount * poolState.reserve1) / poolState.reserve0
+      return requiredUSDC.toFixed(6)
+    } else {
+      const requiredWETH = (amount * poolState.reserve0) / poolState.reserve1
+      return requiredWETH.toFixed(18)
+    }
+  }, [poolState.reserve0, poolState.reserve1])
+
+  // Handle WETH input change - always auto-calculate
+  const handleWETHChange = useCallback((value: string) => {
+    setLiquidityWETH(value)
+    
+    if (value && !isNaN(parseFloat(value))) {
+      const requiredUSDC = calculateRequiredAmount('WETH', value)
+      if (requiredUSDC) {
+        setLiquidityUSDC(requiredUSDC)
+      }
+    } else {
+      setLiquidityUSDC('')
+    }
+  }, [calculateRequiredAmount])
 
   // Validate ratio
   const validateRatio = useCallback((): { isValid: boolean; error?: string } => {
-    if (!liquidityAmountWETH || !liquidityAmountUSDC) {
-      return { isValid: false, error: 'Please enter amounts for both tokens' };
+    if (!liquidityWETH || !liquidityUSDC) {
+      return { isValid: false, error: 'Please enter amounts for both tokens' }
     }
 
-    const wethAmount = parseFloat(liquidityAmountWETH);
-    const usdcAmount = parseFloat(liquidityAmountUSDC);
+    const wethAmount = parseFloat(liquidityWETH)
+    const usdcAmount = parseFloat(liquidityUSDC)
 
     if (wethAmount <= 0 || usdcAmount <= 0) {
-      return { isValid: false, error: 'Amounts must be greater than zero' };
+      return { isValid: false, error: 'Amounts must be greater than zero' }
     }
 
     if (poolState.reserve0 > 0 && poolState.reserve1 > 0) {
-      const currentRatio = poolState.reserve1 / poolState.reserve0;
-      const inputRatio = usdcAmount / wethAmount;
-      const ratioDifference = Math.abs(currentRatio - inputRatio) / currentRatio;
+      const currentRatio = poolState.reserve1 / poolState.reserve0
+      const inputRatio = usdcAmount / wethAmount
+      const ratioDifference = Math.abs(currentRatio - inputRatio) / currentRatio
 
       if (ratioDifference > 0.01) {
         return { 
           isValid: false, 
           error: `Ratio mismatch. Current: ${currentRatio.toFixed(2)} USDC/WETH, Your ratio: ${inputRatio.toFixed(2)}` 
-        };
+        }
       }
     }
 
-    return { isValid: true };
-  }, [liquidityAmountWETH, liquidityAmountUSDC, poolState.reserve0, poolState.reserve1]);
+    return { isValid: true }
+  }, [liquidityWETH, liquidityUSDC, poolState.reserve0, poolState.reserve1])
 
-  const ratioValidation = useMemo(() => {
-    return liquidityAmountWETH && liquidityAmountUSDC ? validateRatio() : { isValid: true };
-  }, [liquidityAmountWETH, liquidityAmountUSDC, validateRatio]);
+  // Validate LP token removal amount (minimum 6 decimal places)
+  const validateLPRemovalAmount = useCallback((amount: string): { isValid: boolean; warning?: string } => {
+    if (!amount || isNaN(parseFloat(amount))) {
+      return { isValid: true }
+    }
 
-  // Listen to mode changes from navigation
+    const numAmount = parseFloat(amount)
+    if (numAmount <= 0) {
+      return { isValid: true }
+    }
+
+    // Check if the amount has less than 6 decimal places of precision
+    const decimalPart = amount.split('.')[1]
+    if (!decimalPart || decimalPart.length < 6) {
+      return { 
+        isValid: false, 
+        warning: 'LP token amount should have at least 6 decimal places for proper precision. Values with fewer decimals may cause transaction errors.' 
+      }
+    }
+
+    // Check if amount is too small (less than 0.000001)
+    if (numAmount < 0.000001) {
+      return { 
+        isValid: false, 
+        warning: 'LP token amount is too small. Minimum recommended amount is 0.000001 LP tokens.' 
+      }
+    }
+
+    return { isValid: true }
+  }, [])
+
+  // Check approvals
+  const checkApprovals = useMemo(() => {
+    if (!liquidityWETH || !liquidityUSDC || !isLiveMode || !isConnected) {
+      return { wethNeedsApproval: false, usdcNeedsApproval: false }
+    }
+
+    try {
+      const wethAmount = parseUnits(liquidityWETH, DECIMALS.WETH)
+      const usdcAmount = parseUnits(liquidityUSDC, DECIMALS.USDC)
+
+      const wethNeedsApproval = !wethAllowance || (wethAllowance as bigint) < wethAmount
+      const usdcNeedsApproval = !usdcAllowance || (usdcAllowance as bigint) < usdcAmount
+
+      return { wethNeedsApproval, usdcNeedsApproval }
+    } catch (error) {
+      return { wethNeedsApproval: true, usdcNeedsApproval: true }
+    }
+  }, [liquidityWETH, liquidityUSDC, isLiveMode, isConnected, wethAllowance, usdcAllowance])
+
+  const { wethNeedsApproval, usdcNeedsApproval } = checkApprovals
+
+  // Handle approvals
+  const handleApproveWETH = useCallback(async () => {
+    if (!liquidityWETH || !address || !isConnected) return
+
+    try {
+      setApprovingWETH(true)
+      const amount = parseUnits(liquidityWETH, DECIMALS.WETH)
+
+      writeApproval({
+        address: CONTRACTS.WETH,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [CONTRACTS.AMM, amount],
+      })
+    } catch (err) {
+      console.error('WETH approval failed:', err)
+      setApprovingWETH(false)
+    }
+  }, [liquidityWETH, address, isConnected, writeApproval])
+
+  const handleApproveUSDC = useCallback(async () => {
+    if (!liquidityUSDC || !address || !isConnected) return
+
+    try {
+      setApprovingUSDC(true)
+      const amount = parseUnits(liquidityUSDC, DECIMALS.USDC)
+
+      writeApproval({
+        address: CONTRACTS.USDC,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [CONTRACTS.AMM, amount],
+      })
+    } catch (err) {
+      console.error('USDC approval failed:', err)
+      setApprovingUSDC(false)
+    }
+  }, [liquidityUSDC, address, isConnected, writeApproval])
+
+  // Handle approval confirmation
   useEffect(() => {
-    setLiquidityAmountWETH('');
-    setLiquidityAmountUSDC('');
-    setRemoveLiquidityShares('');
-  }, [mode]);
+    if (isApprovalConfirmed && approvalHash) {
+      setApprovingWETH(false)
+      setApprovingUSDC(false)
+      refetchWethAllowance()
+      refetchUsdcAllowance()
+    }
+  }, [isApprovalConfirmed, approvalHash, refetchWethAllowance, refetchUsdcAllowance])
+
+  // Handle add liquidity
+  const handleAddLiquidity = useCallback(async () => {
+    const validation = validateRatio()
+    if (!validation.isValid) {
+      alert(validation.error)
+      return
+    }
+
+    if (isLiveMode && !isConnected) {
+      alert('Please connect your wallet to add liquidity in live mode')
+      return
+    }
+
+    if (isLiveMode) {
+      if (wethNeedsApproval) {
+        alert('Please approve WETH first')
+        return
+      }
+      if (usdcNeedsApproval) {
+        alert('Please approve USDC first')
+        return
+      }
+    }
+
+    try {
+      await addLiquidity(parseFloat(liquidityWETH), parseFloat(liquidityUSDC))
+      setLiquidityWETH('')
+      setLiquidityUSDC('')
+    } catch (err) {
+      console.error('Add liquidity failed:', err)
+    }
+  }, [validateRatio, isLiveMode, isConnected, wethNeedsApproval, usdcNeedsApproval, addLiquidity, liquidityWETH, liquidityUSDC])
+
+  // Handle remove liquidity
+  const handleRemoveLiquidity = useCallback(async () => {
+    if (!removeShares || isNaN(parseFloat(removeShares))) {
+      alert('Please enter a valid amount of LP tokens to remove')
+      return
+    }
+
+    const validation = validateLPRemovalAmount(removeShares)
+    if (!validation.isValid && validation.warning) {
+      alert(validation.warning)
+      return
+    }
+
+    if (isLiveMode && !isConnected) {
+      alert('Please connect your wallet to remove liquidity in live mode')
+      return
+    }
+
+    try {
+      await removeLiquidity(parseFloat(removeShares))
+      setRemoveShares('')
+    } catch (err) {
+      console.error('Remove liquidity failed:', err)
+    }
+  }, [removeShares, isLiveMode, isConnected, removeLiquidity, validateLPRemovalAmount])
+
+  // Calculate removal estimates
+  const removalEstimate = useMemo(() => {
+    if (!removeShares || isNaN(parseFloat(removeShares))) {
+      return { amount0: 0, amount1: 0 }
+    }
+    return calculateRemovalAmounts(parseFloat(removeShares))
+  }, [removeShares, calculateRemovalAmounts])
+
+  // Ratio validation result
+  const ratioValidation = useMemo(() => {
+    return liquidityWETH && liquidityUSDC ? validateRatio() : { isValid: true }
+  }, [liquidityWETH, liquidityUSDC, validateRatio])
+
+  // LP removal validation result
+  const lpRemovalValidation = useMemo(() => {
+    return validateLPRemovalAmount(removeShares)
+  }, [removeShares, validateLPRemovalAmount])
+
+  // Clear form on mode change
+  useEffect(() => {
+    setLiquidityWETH('')
+    setLiquidityUSDC('')
+    setRemoveShares('')
+  }, [mode])
 
   useEffect(() => {
     setMounted(true)
@@ -411,146 +417,84 @@ export default function LiquidityPage() {
       >
         <Navigation />
 
-        <main className="pt-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Connection Alert for Live Mode */}
-            {isLiveMode && !isConnected && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <Alert className="border-yellow-500 bg-yellow-500/10">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-yellow-300">
-                    Please connect your wallet to interact with the live AMM contract
-                  </AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
-
-            {/* Error Display */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <Alert className="border-red-500 bg-red-500/10">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-red-300">{error}</AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
-
-            {/* Loading States */}
-            {(isLoading || isWritePending || isConfirming) && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-              >
-                <Alert className="border-blue-500 bg-blue-500/10">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <AlertDescription className="text-blue-300">
-                    {isWritePending || isConfirming ? 'Processing transaction...' : 'Loading...'}
-                  </AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
-
-            {/* Breadcrumb Navigation */}
+        <main className="pt-20 px-3 sm:px-4 lg:px-6">
+          <div className="max-w-[1400px] mx-auto">
+            {/* Header with Mode Indicator */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="flex items-center gap-2 text-white/60 mb-6"
+              className="mb-8"
             >
-              <span>Explore</span>
-              <ChevronRight size={16} />
-              <span>Pools</span>
-              <ChevronRight size={16} />
-              <span className="text-white">WETH / USDC</span>
-              <Badge variant={isMockMode ? "secondary" : "default"} className="ml-4">
-                {isMockMode ? "🎮 Learning Mode" : "🔴 Live Trading"}
-              </Badge>
-            </motion.div>
-
-            {/* Header Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8"
-            >
-              <div className="flex items-center gap-4 mb-4 lg:mb-0">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">W</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-light">WETH / USDC</h1>
-                    <span className="bg-white/10 px-2 py-1 rounded text-sm">v4</span>
-                    <span className="bg-white/10 px-2 py-1 rounded text-sm">0.30%</span>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
-                      <span className="text-pink-400 text-sm">Fee APR</span>
-                    </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold">LP</span>
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-light">WETH / USDC Liquidity Pool</h1>
+                    <p className="text-white/60 mt-1">Manage your liquidity position</p>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {isLiveMode && (
-                  <Button
-                    onClick={refreshUserBalances}
-                    variant="outline"
-                    size="sm"
-                    disabled={isLoading}
-                    className="bg-transparent border-blue-400 text-blue-400 hover:bg-blue-400/10"
-                  >
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                    Refresh
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" className="bg-transparent border-white/20">
-                  <Settings size={16} />
-                </Button>
-                <Button variant="outline" size="sm" className="bg-transparent border-white/20">
-                  <Share size={16} />
-                </Button>
+                <Badge variant={isMockMode ? "secondary" : "default"} className="text-lg px-4 py-2">
+                  {mode.toUpperCase()} MODE
+                </Badge>
               </div>
             </motion.div>
 
+            {/* Status Alerts */}
+            {isLiveMode && !isConnected && (
+              <Alert className="mb-6 border-yellow-500/20 bg-yellow-500/10">
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+                <AlertDescription className="text-yellow-300">
+                  Please connect your wallet to interact with the live AMM contract
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {error && (
+              <Alert className="mb-6 border-red-500/20 bg-red-500/10">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <AlertDescription className="text-red-300">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {(isLoading || isApprovalPending || isApprovalConfirming) && (
+              <Alert className="mb-6 border-blue-500/20 bg-blue-500/10">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <AlertDescription className="text-blue-300">
+                  {isApprovalPending || isApprovalConfirming ? 'Processing approval...' : 
+                   pendingTransaction ? `${pendingTransaction.type} in progress...` : 'Loading...'}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {pendingTransaction?.isConfirmed && (
+              <Alert className="mb-6 border-green-500/20 bg-green-500/10">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <AlertDescription className="text-green-300">
+                  Transaction confirmed! Hash: {pendingTransaction.hash?.slice(0, 10)}...
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Left Section - TVL and Chart */}
-              <div className="lg:col-span-3 space-y-6">
-                {/* TVL Display */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Section - Chart (2/3 width) */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* Hyperbola Visualization */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  <div className="text-4xl font-light mb-2">
-                    ${((poolState.reserve0 * currentPrice + poolState.reserve1) * 1.5).toLocaleString('en-US', { maximumFractionDigits: 1 })}
-                  </div>
-                  <div className="text-white/60">Total Value Locked</div>
-                </motion.div>
-
-                {/* Hyperbola Visualization */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                >
                   <Card className="bg-white/5 backdrop-blur-md border-white/10">
                     <CardHeader>
                       <CardTitle className="text-[#a5f10d] text-xl font-light">
-                        Constant Product Curve (x × y = k = {k.toLocaleString()})
+                        Constant Product Curve (x × y = k)
                       </CardTitle>
                       <CardDescription className="text-white/60">
-                        Interactive visualization of the AMM liquidity curve - {isMockMode ? 'Simulation' : 'Live Data'}
+                        Interactive visualization of the AMM liquidity curve
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -582,325 +526,357 @@ export default function LiquidityPage() {
                     </CardContent>
                   </Card>
                 </motion.div>
-              </div>
 
-              {/* Right Sidebar */}
-              <div className="lg:col-span-1 space-y-6">
-                {/* User Balances - Using direct context access with full LP precision */}
+                {/* Pool Stats - Using the new component */}
                 <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
                 >
-                  <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                    <CardHeader>
-                      <CardTitle className="text-blue-400 text-lg font-light">Your Balances</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/80 font-medium">WETH:</span>
-                          <span className="font-mono text-lg text-white font-bold">{userBalances.weth.toFixed(4)}</span>
-                        </div>
-                      </div>
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/80 font-medium">USDC:</span>
-                          <span className="font-mono text-lg text-white font-bold">{userBalances.usdc.toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="flex flex-col space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-white/80 font-medium">LP Tokens:</span>
-                          </div>
-                          <div className="font-mono text-sm text-white font-bold break-all">
-                            {formattedLPBalance}
-                          </div>
-                        </div>
-                      </div>
-                      {isConnected && (
-                        <div className="text-xs text-white/60 mt-4 pt-3 border-t border-white/20 text-center">
-                          Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  <PoolStatistics
+                    poolState={poolState}
+                    userBalances={userBalances}
+                    k={k}
+                    currentPrice={currentPrice}
+                    getUserPoolShare={getUserPoolShare}
+                    address={address}
+                    isLiveMode={isLiveMode}
+                    isConnected={isConnected}
+                    isMockMode={isMockMode}
+                    isLoading={isLoading}
+                    onRefresh={refreshUserBalances}
+                    onReset={resetPool}
+                    showOptions={{
+                      showUserPoolShare: true,
+                      showPoolConstant: true,
+                      showCurrentPrice: true,
+                      showRefreshButton: true,
+                      showResetButton: true,
+                    }}
+                  />
                 </motion.div>
+              </div>
 
-                {/* Liquidity Management Tabs */}
+              {/* Right Section - Liquidity Management */}
+              <div className="lg:col-span-1">
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
+                  className="h-full"
                 >
-                  <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                    <CardContent className="p-0">
-                      <Tabs defaultValue="add" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-white/10">
+                  <Card className="bg-white/5 backdrop-blur-md border-white/10 h-full">
+                    <CardContent className="p-0 h-full">
+                      <Tabs defaultValue="add" className="w-full h-full flex flex-col">
+                        <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-white/10 rounded-none">
                           <TabsTrigger
                             value="add"
-                            className="data-[state=active]:bg-[#a5f10d]/20 data-[state=active]:text-[#a5f10d] text-white/60"
+                            className="data-[state=active]:bg-[#a5f10d]/20 data-[state=active]:text-[#a5f10d] text-white/60 rounded-none"
                           >
                             Add Liquidity
                           </TabsTrigger>
                           <TabsTrigger
                             value="remove"
-                            className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 text-white/60"
+                            className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 text-white/60 rounded-none"
                           >
                             Remove Liquidity
                           </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="add" className="p-6 space-y-4">
-                          {/* Auto-calculate controls */}
-                          <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/10">
-                            <div className="flex items-center gap-2">
-                              <Calculator className="h-4 w-4 text-blue-400" />
-                              <span className="text-sm text-white/80">Auto-calculate</span>
+                        <TabsContent value="add" className="p-6 space-y-6 flex-1">
+                          {/* WETH Input */}
+                          <div className="bg-black/20 rounded-xl p-4 border border-white/10">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-white/60 text-sm">WETH Amount</span>
+                              <span className="text-white/60 text-sm">
+                                Balance: {userBalances.weth.toFixed(6)}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setAutoCalculateRatio(!autoCalculateRatio)}
-                                className={`text-xs h-7 px-3 ${autoCalculateRatio ? 'bg-blue-500/20 border-blue-500 text-blue-300' : 'border-white/30 text-white/60'}`}
-                              >
-                                {autoCalculateRatio ? 'ON' : 'OFF'}
-                              </Button>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+                                <Image
+                                  src="/weth.svg"
+                                  alt="WETH"
+                                  width={20}
+                                  height={20}
+                                  className="rounded-full"
+                                />
+                                <span className="text-white font-medium">WETH</span>
+                              </div>
+                              
+                              <div className="flex-1 flex items-center justify-end relative">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={liquidityWETH}
+                                  onChange={(e) => {
+                                    const v = e.target.value
+                                    if (v === "" || /^\d*\.?\d*$/.test(v)) handleWETHChange(v)
+                                  }}
+                                  className="w-full text-right text-2xl font-light bg-transparent border-none outline-none text-white placeholder-white/40 pr-16"
+                                  placeholder="0.0"
+                                />
+                                <button 
+                                  onClick={() => handleWETHChange(userBalances.weth.toString())}
+                                  className="absolute right-0 text-[#a5f10d] text-xs font-medium hover:text-[#a5f10d]/80 bg-black/20 px-2 py-1 rounded"
+                                >
+                                  MAX
+                                </button>
+                              </div>
                             </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm text-white/80 mb-2 font-medium">WETH Amount</label>
-                            <Input
-                              type="number"
-                              value={liquidityAmountWETH}
-                              onChange={(e) => handleWETHChange(e.target.value)}
-                              className="bg-black/30 border-white/20 text-white h-12 text-lg"
-                              placeholder="0.0000"
-                              step="any"
-                            />
-                            {/* WETH Approval Button */}
-                            {isLiveMode && isConnected && liquidityAmountWETH && needsWETHApproval && (
+                            
+                            {isLiveMode && isConnected && wethNeedsApproval && liquidityWETH && (
                               <Button
-                                onClick={approveWETH}
-                                disabled={wethApprovalPending || isWritePending || isConfirming}
-                                className="w-full mt-2 bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
+                                onClick={handleApproveWETH}
+                                disabled={approvingWETH || isApprovalPending}
+                                className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700"
                                 size="sm"
                               >
-                                {(wethApprovalPending || isWritePending || isConfirming) ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
+                                {(approvingWETH || isApprovalPending) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 Approve WETH
                               </Button>
                             )}
-                            {isLiveMode && isConnected && liquidityAmountWETH && !needsWETHApproval && (
-                              <div className="mt-2 text-green-400 text-sm flex items-center justify-center bg-green-500/10 rounded-lg py-2">
+                            {isLiveMode && isConnected && !wethNeedsApproval && liquidityWETH && (
+                              <div className="mt-3 text-green-400 text-sm flex items-center justify-center bg-green-500/10 rounded-lg py-2">
                                 <CheckCircle2 className="h-4 w-4 mr-1" />
                                 WETH Approved
                               </div>
                             )}
                           </div>
 
-                          <div>
-                            <label className="block text-sm text-white/80 mb-2 font-medium">USDC Amount</label>
-                            <Input
-                              type="number"
-                              value={liquidityAmountUSDC}
-                              onChange={(e) => handleUSDCChange(e.target.value)}
-                              className="bg-black/30 border-white/20 text-white h-12 text-lg"
-                              placeholder="0.00"
-                              step="any"
-                            />
-                            {/* USDC Approval Button */}
-                            {isLiveMode && isConnected && liquidityAmountUSDC && needsUSDCApproval && (
+                          {/* USDC Input */}
+                          <div className="bg-black/20 rounded-xl p-4 border border-white/10">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-white/60 text-sm">USDC Amount</span>
+                              <span className="text-white/60 text-sm">
+                                Balance: {userBalances.usdc.toFixed(2)}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+                                <Image
+                                  src="/usdc.svg"
+                                  alt="USDC"
+                                  width={20}
+                                  height={20}
+                                  className="rounded-full"
+                                />
+                                <span className="text-white font-medium">USDC</span>
+                              </div>
+                              
+                              <div className="flex-1 flex items-center justify-end relative">
+                                <div className="w-full text-right text-2xl font-light text-white/60 pr-16">
+                                  {liquidityUSDC || "0.0"}
+                                </div>
+                                {/* Invisible spacer to match WETH alignment */}
+                                <div className="absolute right-0 w-12 h-6"></div>
+                              </div>
+                            </div>
+                            
+                            {isLiveMode && isConnected && usdcNeedsApproval && liquidityUSDC && (
                               <Button
-                                onClick={approveUSDC}
-                                disabled={usdcApprovalPending || isWritePending || isConfirming}
-                                className="w-full mt-2 bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
+                                onClick={handleApproveUSDC}
+                                disabled={approvingUSDC || isApprovalPending}
+                                className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700"
                                 size="sm"
                               >
-                                {(usdcApprovalPending || isWritePending || isConfirming) ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
+                                {(approvingUSDC || isApprovalPending) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 Approve USDC
                               </Button>
                             )}
-                            {isLiveMode && isConnected && liquidityAmountUSDC && !needsUSDCApproval && (
-                              <div className="mt-2 text-green-400 text-sm flex items-center justify-center bg-green-500/10 rounded-lg py-2">
+                            {isLiveMode && isConnected && !usdcNeedsApproval && liquidityUSDC && (
+                              <div className="mt-3 text-green-400 text-sm flex items-center justify-center bg-green-500/10 rounded-lg py-2">
                                 <CheckCircle2 className="h-4 w-4 mr-1" />
                                 USDC Approved
                               </div>
                             )}
                           </div>
 
-                          {/* Ratio validation display */}
-                          {liquidityAmountWETH && liquidityAmountUSDC && (
+                          {/* Ratio validation */}
+                          {liquidityWETH && liquidityUSDC && (
                             !ratioValidation.isValid ? (
-                              <Alert className="border-red-500 bg-red-500/10">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription className="text-red-300 text-sm">
+                              <Alert className="border-red-500/20 bg-red-500/10">
+                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                <AlertDescription className="text-red-300">
                                   {ratioValidation.error}
                                 </AlertDescription>
                               </Alert>
                             ) : (
-                              <Alert className="border-green-500 bg-green-500/10">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <AlertDescription className="text-green-300 text-sm">
-                                  ✅ Ratio is valid for liquidity addition
+                              <Alert className="border-green-500/20 bg-green-500/10">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <AlertDescription className="text-green-300">
+                                  Ratio is valid for liquidity addition
                                 </AlertDescription>
                               </Alert>
                             )
                           )}
 
+                          {/* Pool Share Preview */}
+                          {liquidityWETH && liquidityUSDC && (
+                            <div className="bg-black/20 rounded-lg p-4">
+                              <h4 className="text-white/60 text-sm mb-2">You will receive</h4>
+                              <div className="text-lg font-medium text-[#a5f10d]">
+                                {poolState.totalLPSupply === 0 
+                                  ? Math.sqrt(parseFloat(liquidityWETH) * parseFloat(liquidityUSDC)).toFixed(18)
+                                  : Math.min(
+                                      (parseFloat(liquidityWETH) * poolState.totalLPSupply) / poolState.reserve0,
+                                      (parseFloat(liquidityUSDC) * poolState.totalLPSupply) / poolState.reserve1
+                                    ).toFixed(18)
+                                } LP Tokens
+                              </div>
+                              <div className="text-sm text-white/60 mt-1">
+                                Pool share: ~{((parseFloat(liquidityWETH) / (poolState.reserve0 + parseFloat(liquidityWETH))) * 100).toFixed(2)}%
+                              </div>
+                            </div>
+                          )}
+
                           <Button
                             onClick={handleAddLiquidity}
                             disabled={
+                              !liquidityWETH || 
+                              !liquidityUSDC || 
                               isLoading || 
-                              !liquidityAmountWETH || 
-                              !liquidityAmountUSDC || 
-                              isWritePending || 
-                              isConfirming ||
                               (isLiveMode && !isConnected) ||
-                              (isLiveMode && isConnected && (needsWETHApproval || needsUSDCApproval)) ||
+                              (isLiveMode && isConnected && (wethNeedsApproval || usdcNeedsApproval)) ||
                               !ratioValidation.isValid
                             }
-                            className="w-full bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90 font-medium h-12 text-lg"
+                            className="w-full bg-[#a5f10d] text-black hover:bg-[#a5f10d]/90 py-6 text-lg font-medium"
                           >
-                            {isLoading || isWritePending || isConfirming ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : null}
+                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                             Add Liquidity
                           </Button>
                         </TabsContent>
 
-                        <TabsContent value="remove" className="p-6 space-y-4">
-                          <div>
+                        <TabsContent value="remove" className="p-6 space-y-6 flex-1">
+                          {/* LP Token Balance */}
+                          <div className="bg-black/20 rounded-xl p-4 border border-white/10">
                             <div className="flex justify-between items-center mb-2">
-                              <label className="block text-sm text-white/80 font-medium">LP Tokens to Remove</label>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={setMaxLPTokens}
-                                className="text-xs h-6 px-2 border-purple-500 text-purple-400 hover:bg-purple-500/10"
-                                disabled={fullLPTokenBalance <= 0}
-                              >
-                                MAX
-                              </Button>
+                              <span className="text-white/60 text-sm">Your LP Position</span>
+                              <span className="text-white/60 text-sm">
+                                Pool share: {(poolShare / 100).toFixed(2)}%
+                              </span>
                             </div>
-                            <Input
-                              type="number"
-                              value={removeLiquidityShares}
-                              onChange={(e) => setRemoveLiquidityShares(e.target.value)}
-                              className="bg-black/30 border-white/20 text-white h-12 text-lg"
-                              placeholder="0.000000000000000000"
-                              step="any"
-                              min="0.000001"
-                              max={formattedLPBalance}
-                            />
-                            <div className="text-xs text-white/60 mt-1">
-                              Available: {formattedLPBalance} LP tokens
-                            </div>
-                            <div className="text-xs text-white/60">
-                              Minimum amount: 0.000001 LP tokens
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+                                <Image
+                                  src="/LPToken.png"
+                                  alt="LP Token"
+                                  width={20}
+                                  height={20}
+                                  className="rounded-full"
+                                />
+                                <span className="text-white font-medium">LP Tokens</span>
+                              </div>
+                              
+                              <div className="flex-1 text-right">
+                                <div className="text-lg font-light text-white font-mono break-all">
+                                  {userBalances.lpToken.toFixed(18)}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                          
-                          {removeLiquidityShares && Number(removeLiquidityShares) > 0 && (
-                            <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                              <div className="text-sm text-white/80 mb-2 font-medium">You will receive approximately:</div>
-                              <div className="space-y-1">
-                                <div className="text-red-400 font-mono">
-                                  WETH: {((Number(removeLiquidityShares) * poolState.reserve0) / poolState.totalLPSupply).toFixed(4)}
+
+                          {/* Remove Liquidity Input */}
+                          <div className="bg-black/20 rounded-xl p-4 border border-white/10">
+                            <div className="flex justify-between items-center mb-2">
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+                                <Image
+                                  src="/LPToken.png"
+                                  alt="LP Token"
+                                  width={20}
+                                  height={20}
+                                  className="rounded-full"
+                                />
+                                <span className="text-white font-medium">To Remove:</span>
+                              </div>
+                              
+                              <div className="flex-1 flex items-center justify-end relative">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={removeShares}
+                                  onChange={(e) => {
+                                    const v = e.target.value
+                                    if (v === "" || /^\d*\.?\d*$/.test(v)) setRemoveShares(v)
+                                  }}
+                                  className="w-full text-right text-lg font-light bg-transparent border-none outline-none text-white placeholder-white/40 pr-16 font-mono break-all"
+                                  placeholder="0.000000000000000000"
+                                />
+                                <button 
+                                  onClick={() => setRemoveShares(userBalances.lpToken.toString())}
+                                  className="absolute right-0 text-red-400 text-xs font-medium hover:text-red-400/80 bg-black/20 px-2 py-1 rounded"
+                                >
+                                  MAX
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Percentage Buttons */}
+                            <div className="grid grid-cols-4 gap-2 mt-3">
+                              {[25, 50, 75, 100].map((percentage) => (
+                                <Button
+                                  key={percentage}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setRemoveShares((userBalances.lpToken * percentage / 100).toFixed(18))}
+                                  className="bg-transparent border-white/20 text-white/80 hover:bg-white/10"
+                                >
+                                  {percentage}%
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* LP Amount Validation Warning */}
+                          {removeShares && !lpRemovalValidation.isValid && lpRemovalValidation.warning && (
+                            <Alert className="border-yellow-500/20 bg-yellow-500/10">
+                              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                              <AlertDescription className="text-yellow-300 text-sm">
+                                {lpRemovalValidation.warning}
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
+                          {/* Withdrawal Preview */}
+                          {removeShares && !isNaN(parseFloat(removeShares)) && (
+                            <div className="bg-black/20 rounded-lg p-4">
+                              <h4 className="text-white/60 text-sm mb-3">You will receive</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-white/80">WETH:</span>
+                                  <span className="text-secondary font-medium font-mono">
+                                    {removalEstimate.amount0.toFixed(18)}
+                                  </span>
                                 </div>
-                                <div className="text-red-400 font-mono">
-                                  USDC: {((Number(removeLiquidityShares) * poolState.reserve1) / poolState.totalLPSupply).toFixed(2)}
+                                <div className="flex justify-between">
+                                  <span className="text-white/80">USDC:</span>
+                                  <span className="text-secondary font-medium font-mono">{removalEstimate.amount1.toFixed(6)}</span>
                                 </div>
                               </div>
                             </div>
                           )}
 
-                          <Button 
+                          <Button
                             onClick={handleRemoveLiquidity}
                             disabled={
+                              !removeShares || 
                               isLoading || 
-                              !removeLiquidityShares || 
-                              Number(removeLiquidityShares) <= 0 ||
-                              Number(removeLiquidityShares) < 1e-6 ||
-                              Number(removeLiquidityShares) > fullLPTokenBalance ||
-                              (isLiveMode && !isConnected)
+                              (isLiveMode && !isConnected) ||
+                              !lpRemovalValidation.isValid
                             }
-                            className="w-full bg-red-600 hover:bg-red-700 font-medium h-12 text-lg"
+                            className="w-full bg-red-600 hover:bg-red-700 py-6 text-lg font-medium"
                           >
                             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                             Remove Liquidity
                           </Button>
                         </TabsContent>
                       </Tabs>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Pool Stats - Using direct context access */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
-                >
-                  <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                    <CardHeader>
-                      <CardTitle className="text-white text-lg font-light">Pool Stats</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="text-white/80 text-sm mb-3 font-medium">Pool Balances</div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-white/70">WETH:</span>
-                            <span className="font-mono text-white font-bold">{poolState.reserve0.toFixed(4)}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-white/70">USDC:</span>
-                            <span className="font-mono text-white font-bold">{poolState.reserve1.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="text-white/80 text-sm mb-2 font-medium">Constant k</div>
-                        <div className="text-[#a5f10d] font-medium font-mono text-lg">{k.toLocaleString()}</div>
-                      </div>
-
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="text-white/80 text-sm mb-3 font-medium">Current Prices</div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white/70">USDC/WETH:</span>
-                            <span className="font-mono text-white font-bold">{currentPrice.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white/70">WETH/USDC:</span>
-                            <span className="font-mono text-white font-bold">{(1/currentPrice).toFixed(6)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-black/30 rounded-lg p-4 border border-white/10">
-                        <div className="text-white/80 text-sm mb-2 font-medium">Total LP Supply</div>
-                        <div className="text-purple-400 font-medium font-mono text-lg">{poolState.totalLPSupply.toFixed(4)}</div>
-                      </div>
-                      
-                      {isMockMode && (
-                        <Button 
-                          onClick={resetPool} 
-                          variant="outline" 
-                          className="w-full bg-transparent border-purple-500 text-purple-400 hover:bg-purple-500/10"
-                          disabled={isLoading}
-                        >
-                          🔄 Reset Pool
-                        </Button>
-                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -911,7 +887,7 @@ export default function LiquidityPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
               className="mt-12"
             >
               <Card className="bg-white/5 backdrop-blur-md border-white/10">
@@ -919,26 +895,26 @@ export default function LiquidityPage() {
                   <CardTitle className="text-[#a5f10d] text-2xl font-light">Understanding AMM Mechanics</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-black/20 rounded-lg p-6 border border-white/10">
-                    <h3 className="text-xl font-light mb-3 text-white">📊 Constant Product Formula</h3>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Constant Product Formula</h3>
                     <p className="text-white/70 leading-relaxed text-sm">
                       The hyperbola represents <span className="text-[#a5f10d] font-mono">x × y = k</span>, ensuring the
                       product of reserves remains constant during trades. This mathematical relationship creates
-                      automatic price discovery and the cyan dot shows your current pool position.
+                      automatic price discovery.
                     </p>
                   </div>
-                  <div className="bg-black/20 rounded-lg p-6 border border-white/10">
-                    <h3 className="text-xl font-light mb-3 text-white">⚡ Trading Impact</h3>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Dynamic Pool Balance</h3>
                     <p className="text-white/70 leading-relaxed text-sm">
-                      Each trade moves the cyan dot along the curve, with larger trades experiencing higher slippage. The curve's
-                      shape naturally creates resistance to large price movements, providing stability to the market.
+                      The progress bar shows how the current pool ratio compares to the original 1000 USDC per 1 WETH ratio.
+                      When traders swap more USDC for WETH, the bar shifts to show higher USDC concentration.
                     </p>
                   </div>
-                  <div className="bg-black/20 rounded-lg p-6 border border-white/10">
-                    <h3 className="text-xl font-light mb-3 text-white">💧 Liquidity Effects</h3>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">LP Token Precision</h3>
                     <p className="text-white/70 leading-relaxed text-sm">
-                      Adding liquidity shifts the entire curve outward (higher k), reducing slippage for all traders.
-                      Liquidity providers earn fees from trades while helping maintain market efficiency and depth.
+                      LP tokens use 18 decimal places and can have very small values. When removing liquidity, ensure
+                      your input has at least 6 decimal places for proper transaction processing and to avoid errors.
                     </p>
                   </div>
                 </CardContent>
