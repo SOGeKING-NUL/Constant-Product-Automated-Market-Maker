@@ -86,6 +86,7 @@ interface AMMContextType {
     addLiquidity: (amount0: number, amount1: number) => Promise<number>;
     removeLiquidity: (shares: number) => Promise<{ reserve0: number; reserve1: number }>;
     calculateRemovalAmounts: (shares: number) => RemovalAmounts;
+    getUserPoolShare: (userAddress: string) => number;
 
     resetPool: () => void;
     refreshUserBalances: () => void;    //only for Live Mode
@@ -107,8 +108,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
     const {address, isConnected}= useAccount();
 
     //Mode State
-    const [mode, setMode] =useState<AMMMode>('live'); //NEED TO CHANGE TO LIVE FOR PRODUCTION
-
+    const [mode, setMode] =useState<AMMMode>('live'); 
     const [mockPoolState, setMockPoolState] = useState<PoolState>({
         token0Address: CONTRACTS.WETH, 
         token1Address: CONTRACTS.USDC, 
@@ -146,6 +146,16 @@ export function AMMProvider({ children }: { children: ReactNode }) {
             refetchInterval: mode === 'live' ? 5000 : false, // Auto-refresh every 5 seconds
         }
     });
+
+        const { data: currentUserPoolShare, isLoading: isUserPoolShareLoading, refetch: refetchUserPoolShare } = useReadContract({
+            address: CONTRACTS.AMM,
+            abi: AMM_ABI,
+            functionName: 'getUserPoolShare',
+            args: address ? [address] : undefined,
+            query: {
+                enabled: mode === 'live' && isConnected && !!address,
+            }
+        });
 
     // fetching Weth, usdc and lpTokens
     const { data: wethBalance, refetch: refetchWETH } = useBalance({
@@ -335,6 +345,44 @@ export function AMMProvider({ children }: { children: ReactNode }) {
             amount1
         };
     }, [poolState]);
+
+    const getUserPoolShare = useCallback((userAddress: string): number => {
+        try {
+            if (!userAddress) {
+            return 0;
+            }
+
+            if (mode === 'mock') {
+
+                if (mockPoolState.totalLPSupply === 0) return 0;
+                
+                return (mockUserBalances.lpToken / mockPoolState.totalLPSupply) * 100;
+            } else {
+
+            // Live mode implementation
+            if (!isConnected) {
+                return 0;
+            }
+
+            if (userAddress.toLowerCase() === address?.toLowerCase()) {
+                if (isUserPoolShareLoading) {
+                return 0;
+                }
+                
+                if (currentUserPoolShare !== undefined) {
+                return Number(currentUserPoolShare);
+                }
+                
+                return 0;
+            } else {
+                return 0;
+            }
+            }
+        } catch (err: any) {
+            console.error('Error in getUserPoolShare:', err);
+            return 0;
+        }
+    }, [mode, mockUserBalances, mockPoolState, isConnected, address, currentUserPoolShare, isUserPoolShareLoading]);
 
     const executeSwap = useCallback(async (tokenIn: 'WETH' | 'USDC', amountIn: number): Promise<number> => {
         setIsLoading(true);
@@ -634,7 +682,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
         }
     }, [isConfirmed, mode, refreshUserBalances, refetchPoolState, hash, pendingTransaction, receipt]);
     
-    const combinedLoading = isLoading || isWritePending || isConfirming || isPoolLoading;
+    const combinedLoading = isLoading || isWritePending || isConfirming || isPoolLoading || isUserPoolShareLoading;
     
     const value: AMMContextType = {
         mode,
@@ -650,6 +698,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
         addLiquidity,
         removeLiquidity,
         calculateRemovalAmounts,
+        getUserPoolShare,
         resetPool,
         refreshUserBalances,
         isLoading: combinedLoading,
