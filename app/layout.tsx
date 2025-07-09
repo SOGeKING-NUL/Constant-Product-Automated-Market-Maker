@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "x.y=k",
+    title: "xyk-amm: Constant Product AMM to understan liquidity pools and perform swaps",
     description: "Constant Product AMM to understan liquidity pools and perform swaps",
     images: ["/images/preview.jpg"], 
     site: "@JanaUtsav", 

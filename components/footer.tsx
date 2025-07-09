@@ -18,6 +18,18 @@ export default function Footer() {
 
           {/* Core Links */}
           <div className="flex flex-col sm:flex-row items-center gap-8 text-white/60 text-sm font-light">
+
+            <a
+              href="https://www.alchemy.com/faucets/base-sepolia"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#a5f10d] transition-colors"
+            >
+              BASE Sepolia Faucet
+            </a>
+
+            <span className="hidden sm:inline text-white/30">•</span>
+
             <a
               href="https://sepolia.basescan.org/address/0x4200000000000000000000000000000000000006#writeContract"
               target="_blank"
