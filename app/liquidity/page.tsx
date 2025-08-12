@@ -19,6 +19,7 @@ import { useAMM } from '@/contexts/AMMContext'
 import { Loader2, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react'
 import PoolStatistics from '@/components/PoolStatistics'
 import Image from "next/image"
+import React from "react"
 
 
 // Contract addresses
@@ -57,6 +58,35 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   }
   return null
 }
+
+// Memoized chart component to prevent unnecessary re-renders
+const MemoizedChart = React.memo(({ curveData }: { curveData: Array<{ x: number; curveY: number; isCurrent: boolean }> }) => (
+  <div className="h-80">
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+        <XAxis
+          dataKey="x"
+          stroke="rgba(255,255,255,0.6)"
+          label={{ value: "WETH Reserves", position: "insideBottom", offset: -10 }}
+        />
+        <YAxis
+          stroke="rgba(255,255,255,0.6)"
+          label={{ value: "USDC Reserves", angle: -90, position: "insideLeft" }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Line
+          type="monotone"
+          dataKey="curveY"
+          stroke="#a5f10d"
+          strokeWidth={3}
+          dot={<CustomDot />}
+          activeDot={{ r: 6, fill: "#a5f10d" }}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  </div>
+))
 
 export default function LiquidityPage() {
   const [mounted, setMounted] = useState(false)
@@ -142,7 +172,7 @@ export default function LiquidityPage() {
     return data
   }, [k, poolState.reserve0])
 
-  const curveData = generateCurveData()
+  const curveData = useMemo(() => generateCurveData(), [generateCurveData])
 
   // Calculate required amount based on pool ratio
   const calculateRequiredAmount = useCallback((inputToken: 'WETH' | 'USDC', inputAmount: string): string => {
@@ -157,13 +187,64 @@ export default function LiquidityPage() {
     const amount = parseFloat(inputAmount)
     
     if (inputToken === 'WETH') {
+      // Calculate USDC amount based on current pool ratio
       const requiredUSDC = (amount * poolState.reserve1) / poolState.reserve0
+      // Round to 6 decimal places for USDC precision
       return requiredUSDC.toFixed(6)
     } else {
+      // Calculate WETH amount based on current pool ratio
       const requiredWETH = (amount * poolState.reserve0) / poolState.reserve1
+      // Round to 18 decimal places for WETH precision
       return requiredWETH.toFixed(18)
     }
   }, [poolState.reserve0, poolState.reserve1])
+
+  // Calculate optimal amounts for MAX button to ensure perfect ratio compliance
+  const calculateOptimalAmounts = useCallback((maxToken: 'WETH' | 'USDC'): { weth: string; usdc: string } => {
+    if (poolState.reserve0 <= 0 || poolState.reserve1 <= 0) {
+      return { weth: '', usdc: '' }
+    }
+
+    const maxBalance = maxToken === 'WETH' ? userBalances.weth : userBalances.usdc
+    
+    if (maxToken === 'WETH') {
+      const maxWETH = maxBalance
+      const requiredUSDC = (maxWETH * poolState.reserve1) / poolState.reserve0
+      
+      // Check if user has enough USDC
+      if (requiredUSDC <= userBalances.usdc) {
+        return {
+          weth: maxWETH.toFixed(18),
+          usdc: requiredUSDC.toFixed(6)
+        }
+      } else {
+        // Calculate maximum WETH based on available USDC
+        const maxWETHFromUSDC = (userBalances.usdc * poolState.reserve0) / poolState.reserve1
+        return {
+          weth: maxWETHFromUSDC.toFixed(18),
+          usdc: userBalances.usdc.toFixed(6)
+        }
+      }
+    } else {
+      const maxUSDC = maxBalance
+      const requiredWETH = (maxUSDC * poolState.reserve0) / poolState.reserve1
+      
+      // Check if user has enough WETH
+      if (requiredWETH <= userBalances.weth) {
+        return {
+          weth: requiredWETH.toFixed(18),
+          usdc: maxUSDC.toFixed(6)
+        }
+      } else {
+        // Calculate maximum USDC based on available WETH
+        const maxUSDCFromWETH = (userBalances.weth * poolState.reserve1) / poolState.reserve0
+        return {
+          weth: userBalances.weth.toFixed(18),
+          usdc: maxUSDCFromWETH.toFixed(6)
+        }
+      }
+    }
+  }, [poolState.reserve0, poolState.reserve1, userBalances.weth, userBalances.usdc])
 
   // Handle WETH input change - always auto-calculate
   const handleWETHChange = useCallback((value: string) => {
@@ -176,6 +257,20 @@ export default function LiquidityPage() {
       }
     } else {
       setLiquidityUSDC('')
+    }
+  }, [calculateRequiredAmount])
+
+  // Handle USDC input change - always auto-calculate
+  const handleUSDCChange = useCallback((value: string) => {
+    setLiquidityUSDC(value)
+    
+    if (value && !isNaN(parseFloat(value))) {
+      const requiredWETH = calculateRequiredAmount('USDC', value)
+      if (requiredWETH) {
+        setLiquidityWETH(requiredWETH)
+      }
+    } else {
+      setLiquidityWETH('')
     }
   }, [calculateRequiredAmount])
 
@@ -193,14 +288,19 @@ export default function LiquidityPage() {
     }
 
     if (poolState.reserve0 > 0 && poolState.reserve1 > 0) {
-      const currentRatio = poolState.reserve1 / poolState.reserve0
-      const inputRatio = usdcAmount / wethAmount
-      const ratioDifference = Math.abs(currentRatio - inputRatio) / currentRatio
-
-      if (ratioDifference > 0.01) {
+      // Match contract's ratio validation logic exactly
+      const left = poolState.reserve0 * usdcAmount;
+      const right = poolState.reserve1 * wethAmount;
+      const diff = Math.abs(left - right);
+      
+      // Contract uses: require(diff * 10000 <= left * 100, "Invalid ratio");
+      // This translates to: diff <= left * 0.01 (1% tolerance)
+      if (diff * 10000 > left * 100) {
+        const currentRatio = poolState.reserve1 / poolState.reserve0
+        const inputRatio = usdcAmount / wethAmount
         return { 
           isValid: false, 
-          error: `Ratio mismatch. Current: ${currentRatio.toFixed(2)} USDC/WETH, Your ratio: ${inputRatio.toFixed(2)}` 
+          error: `Ratio mismatch. Current: ${currentRatio.toFixed(2)} USDC/WETH, Your ratio: ${inputRatio.toFixed(2)}. Must be within 1% tolerance.` 
         }
       }
     }
@@ -499,31 +599,7 @@ export default function LiquidityPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                            <XAxis
-                              dataKey="x"
-                              stroke="rgba(255,255,255,0.6)"
-                              label={{ value: "WETH Reserves", position: "insideBottom", offset: -10 }}
-                            />
-                            <YAxis
-                              stroke="rgba(255,255,255,0.6)"
-                              label={{ value: "USDC Reserves", angle: -90, position: "insideLeft" }}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Line
-                              type="monotone"
-                              dataKey="curveY"
-                              stroke="#a5f10d"
-                              strokeWidth={3}
-                              dot={<CustomDot />}
-                              activeDot={{ r: 6, fill: "#a5f10d" }}
-                            />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
+                      <MemoizedChart curveData={curveData} />
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -619,7 +695,11 @@ export default function LiquidityPage() {
                                   placeholder="0.0"
                                 />
                                 <button 
-                                  onClick={() => handleWETHChange(userBalances.weth.toString())}
+                                  onClick={() => {
+                                    const optimalAmounts = calculateOptimalAmounts('WETH')
+                                    setLiquidityWETH(optimalAmounts.weth)
+                                    setLiquidityUSDC(optimalAmounts.usdc)
+                                  }}
                                   className="absolute right-0 text-secondary text-xs font-medium hover:text-secondary/80 bg-black/20 px-2 py-1 rounded"
                                 >
                                   MAX
@@ -668,11 +748,27 @@ export default function LiquidityPage() {
                               </div>
                               
                               <div className="flex-1 flex items-center justify-end relative">
-                                <div className="w-full text-right text-2xl font-light text-white/60 pr-16">
-                                  {liquidityUSDC || "0.0"}
-                                </div>
-                                {/* Invisible spacer to match WETH alignment */}
-                                <div className="absolute right-0 w-12 h-6"></div>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={liquidityUSDC}
+                                  onChange={(e) => {
+                                    const v = e.target.value
+                                    if (v === "" || /^\d*\.?\d*$/.test(v)) handleUSDCChange(v)
+                                  }}
+                                  className="w-full text-right text-2xl font-light bg-transparent border-none outline-none text-white placeholder-white/40 pr-16"
+                                  placeholder="0.0"
+                                />
+                                <button 
+                                  onClick={() => {
+                                    const optimalAmounts = calculateOptimalAmounts('USDC')
+                                    setLiquidityWETH(optimalAmounts.weth)
+                                    setLiquidityUSDC(optimalAmounts.usdc)
+                                  }}
+                                  className="absolute right-0 text-secondary text-xs font-medium hover:text-secondary/80 bg-black/20 px-2 py-1 rounded"
+                                >
+                                  MAX
+                                </button>
                               </div>
                             </div>
                             
@@ -697,21 +793,42 @@ export default function LiquidityPage() {
 
                           {/* Ratio validation */}
                           {liquidityWETH && liquidityUSDC && (
-                            !ratioValidation.isValid ? (
-                              <Alert className="border-red-500/20 bg-red-500/10">
-                                <AlertCircle className="h-4 w-4 text-red-500" />
-                                <AlertDescription className="text-red-300">
-                                  {ratioValidation.error}
-                                </AlertDescription>
-                              </Alert>
-                            ) : (
-                              <Alert className="border-green-500/20 bg-green-500/10">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                <AlertDescription className="text-green-300">
-                                  Ratio is valid for liquidity addition
-                                </AlertDescription>
-                              </Alert>
-                            )
+                            <div className="space-y-3">
+                              {/* Ratio Information */}
+                              <div className="bg-black/20 rounded-lg p-3">
+                                <div className="text-sm text-white/60 mb-2">Ratio Information</div>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-white/60">Current Pool:</span>
+                                    <span className="text-white ml-2">{(poolState.reserve1 / poolState.reserve0).toFixed(2)} USDC/WETH</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-white/60">Your Input:</span>
+                                    <span className="text-white ml-2">{(parseFloat(liquidityUSDC) / parseFloat(liquidityWETH)).toFixed(2)} USDC/WETH</span>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-white/40 mt-2">
+                                  ⓘ Ratio must be within 1% tolerance of the current pool ratio
+                                </div>
+                              </div>
+                              
+                              {/* Validation Alert */}
+                              {!ratioValidation.isValid ? (
+                                <Alert className="border-red-500/20 bg-red-500/10">
+                                  <AlertCircle className="h-4 w-4 text-red-500" />
+                                  <AlertDescription className="text-red-300">
+                                    {ratioValidation.error}
+                                  </AlertDescription>
+                                </Alert>
+                              ) : (
+                                <Alert className="border-green-500/20 bg-green-500/10">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  <AlertDescription className="text-green-300">
+                                    Ratio is valid for liquidity addition
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            </div>
                           )}
 
                           {/* Pool Share Preview */}

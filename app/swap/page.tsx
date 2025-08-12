@@ -34,6 +34,7 @@ import { useAMM } from "@/contexts/AMMContext"
 import { ERC20_ABI } from "@/lib/abis"
 import PoolStatistics from "@/components/PoolStatistics"
 import Image from "next/image"
+import React from "react"
 
 
 /* --------------------------------------------------- */
@@ -69,6 +70,35 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     </div>
   )
 }
+
+// Memoized chart component to prevent unnecessary re-renders
+const MemoizedChart = React.memo(({ curveData }: { curveData: Array<{ x: number; curveY: number; isCurrent: boolean }> }) => (
+  <div className="h-80">
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+        <XAxis
+          dataKey="x"
+          stroke="rgba(255,255,255,0.6)"
+          label={{ value: "WETH Reserves", position: "insideBottom", offset: -10 }}
+        />
+        <YAxis
+          stroke="rgba(255,255,255,0.6)"
+          label={{ value: "USDC Reserves", angle: -90, position: "insideLeft" }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Line
+          type="monotone"
+          dataKey="curveY"
+          stroke="#a5f10d"
+          strokeWidth={3}
+          dot={<CustomDot />}
+          activeDot={{ r: 6, fill: "#a5f10d" }}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  </div>
+))
 
 /* --------------------------------------------------- */
 /*                      COMPONENT                       */
@@ -305,31 +335,7 @@ export default function SwapPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                          <XAxis
-                            dataKey="x"
-                            stroke="rgba(255,255,255,0.6)"
-                            label={{ value: "WETH Reserves", position: "insideBottom", offset: -10 }}
-                          />
-                          <YAxis
-                            stroke="rgba(255,255,255,0.6)"
-                            label={{ value: "USDC Reserves", angle: -90, position: "insideLeft" }}
-                          />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Line
-                            type="monotone"
-                            dataKey="curveY"
-                            stroke="#a5f10d"
-                            strokeWidth={3}
-                            dot={<CustomDot />}
-                            activeDot={{ r: 6, fill: "#a5f10d" }}
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <MemoizedChart curveData={curveData} />
                   </CardContent>
                 </Card>
 

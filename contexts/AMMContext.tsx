@@ -21,7 +21,7 @@ const DECIMALS = {
 
 const FEE_RATE = 997; // 0.3% fee = 997/1000
 const FEE_DENOMINATOR = 1000;
-const EPSILON = 1000; 
+const EPSILON = 0.01; // 1% tolerance to match contract: diff * 10000 <= left * 100
 
 const INITIAL_MOCK_RESERVES = {
     RESERVE_0: 1000,
@@ -325,7 +325,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
         const amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
         
         return amountOut;
-    }, [poolState, calculateFeeAdjustedAmount]);
+    }, [poolState.reserve0, poolState.reserve1, calculateFeeAdjustedAmount]);
 
     const calculateRemovalAmounts = useCallback((shares: number): RemovalAmounts => {
         if (shares <= 0) {
@@ -344,7 +344,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
             amount0,
             amount1
         };
-    }, [poolState]);
+    }, [poolState.reserve0, poolState.reserve1, poolState.totalLPSupply]);
 
     const getUserPoolShare = useCallback((userAddress: string): number => {
         try {
@@ -382,7 +382,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
             console.error('Error in getUserPoolShare:', err);
             return 0;
         }
-    }, [mode, mockUserBalances, mockPoolState, isConnected, address, currentUserPoolShare, isUserPoolShareLoading]);
+    }, [mode, mockUserBalances.lpToken, mockPoolState.totalLPSupply, isConnected, address, currentUserPoolShare, isUserPoolShareLoading]);
 
     const executeSwap = useCallback(async (tokenIn: 'WETH' | 'USDC', amountIn: number): Promise<number> => {
         setIsLoading(true);
@@ -486,8 +486,9 @@ export function AMMProvider({ children }: { children: ReactNode }) {
                     const left = mockPoolState.reserve0 * amount1;
                     const right = mockPoolState.reserve1 * amount0;
                     const diff = Math.abs(left - right);
-                    if (diff > EPSILON) {
-                        throw new Error('Invalid ratio');
+                    // Match contract's ratio validation logic exactly
+                    if (diff * 10000 > left * 100) {
+                        throw new Error('Invalid ratio - must be within 1% tolerance');
                     }
                     
                     const shares0 = (amount0 * mockPoolState.totalLPSupply) / mockPoolState.reserve0;
@@ -666,7 +667,7 @@ export function AMMProvider({ children }: { children: ReactNode }) {
 
     //only for live mode
     useEffect(() => {
-        if (isConfirmed && mode === 'live' && hash && pendingTransaction) {
+        if (isConfirmed && mode === 'live' && hash && pendingTransaction && !pendingTransaction.isConfirmed) {
             // Transaction confirmed, refresh balances and pool state
             refreshUserBalances();
             refetchPoolState();
