@@ -132,7 +132,7 @@ export default function PoolStatistics({
   }
 
   return (
-    <Card className="bg-white/5 backdrop-blur-md border-white/10">
+    <Card className="bg-white/5 backdrop-blur-md border-white/10 h-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-white text-lg font-light">
           {pageType === 'swap' ? 'Swap Analytics' : 'Pool Analytics'}
@@ -149,8 +149,8 @@ export default function PoolStatistics({
           </Button>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
+      <CardContent className="h-full flex flex-col">
+        <div className="flex-1 space-y-6">
           {/* Pool Balances with Dynamic Ratio */}
           <div>
             <div className="text-white/60 text-sm mb-3">Pool Balances</div>
@@ -274,7 +274,7 @@ export default function PoolStatistics({
 
           {/* Action Buttons */}
           {showOptions.showResetButton && isMockMode && onReset && (
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center pt-4 mt-auto">
               <Button
                 onClick={onReset}
                 variant="outline"

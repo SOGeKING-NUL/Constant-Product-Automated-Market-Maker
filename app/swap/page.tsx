@@ -250,34 +250,36 @@ export default function SwapPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Pool Analytics */}
               <div className="lg:col-span-2">
-                <PoolStatistics
-                  poolState={poolState}
-                  userBalances={userBalances}
-                  k={k}
-                  currentPrice={currentPrice}
-                  getUserPoolShare={getUserPoolShare}
-                  address={address}
-                  isLiveMode={isLiveMode}
-                  isConnected={isConnected}
-                  isMockMode={isMockMode}
-                  isLoading={isLoading}
-                  onRefresh={refreshUserBalances}
-                  onReset={resetPool}
-                  pageType="swap"
-                  swapAmount={swapAmount}
-                  fromToken={fromToken}
-                  expectedOutput={expectedOutput}
-                  priceImpact={priceImpact}
-                  showOptions={{
-                    showUserPoolShare: true,
-                    showPoolConstant: true,
-                    showCurrentPrice: true,
-                    showRefreshButton: true,
-                    showResetButton: true,
-                    showPriceImpact: true,
-                    showLiquidityDepth: true,
-                  }}
-                />
+                <div className="h-full">
+                  <PoolStatistics
+                    poolState={poolState}
+                    userBalances={userBalances}
+                    k={k}
+                    currentPrice={currentPrice}
+                    getUserPoolShare={getUserPoolShare}
+                    address={address}
+                    isLiveMode={isLiveMode}
+                    isConnected={isConnected}
+                    isMockMode={isMockMode}
+                    isLoading={isLoading}
+                    onRefresh={refreshUserBalances}
+                    onReset={resetPool}
+                    pageType="swap"
+                    swapAmount={swapAmount}
+                    fromToken={fromToken}
+                    expectedOutput={expectedOutput}
+                    priceImpact={priceImpact}
+                    showOptions={{
+                      showUserPoolShare: true,
+                      showPoolConstant: true,
+                      showCurrentPrice: true,
+                      showRefreshButton: true,
+                      showResetButton: true,
+                      showPriceImpact: true,
+                      showLiquidityDepth: true,
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Swap Interface */}
@@ -287,7 +289,8 @@ export default function SwapPage() {
                     <CardTitle className="text-white text-lg font-light">Swap Tokens</CardTitle>
                   </CardHeader>
 
-                  <CardContent className="space-y-6">
+                  <CardContent className="h-full flex flex-col">
+                    <div className="flex-1 space-y-6">
 
                     {/* FROM token */}
                     <div className="bg-black/20 rounded-xl p-4 border border-white/10">
@@ -450,6 +453,7 @@ export default function SwapPage() {
                         )}
                       </Button>
                     )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
