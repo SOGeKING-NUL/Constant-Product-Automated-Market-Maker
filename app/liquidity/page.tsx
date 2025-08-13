@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
 import { parseUnits, formatUnits, Address } from 'viem'
 import { ERC20_ABI } from '@/lib/abis'
@@ -19,7 +18,6 @@ import { useAMM } from '@/contexts/AMMContext'
 import { Loader2, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react'
 import PoolStatistics from '@/components/PoolStatistics'
 import Image from "next/image"
-import React from "react"
 
 
 // Contract addresses
@@ -34,59 +32,7 @@ const DECIMALS = {
   USDC: 6,
 } as const
 
-// Custom dot component for highlighting current position
-const CustomDot = (props: any) => {
-  const { cx, cy, payload } = props
-  if (payload?.isCurrent) {
-    return <circle cx={cx} cy={cy} r={8} fill="#00bcd4" stroke="#ffffff" strokeWidth={3} className="animate-pulse" />
-  }
-  return null
-}
 
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload
-    return (
-      <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-lg p-3 text-sm">
-        <p className="text-secondary font-medium">{data.isCurrent ? "Current Pool Position" : "Curve Point"}</p>
-        <p className="text-white">WETH: {label}</p>
-        <p className="text-white">USDC: {payload[0].value.toFixed(2)}</p>
-        <p className="text-cyan-400">k = {(label * payload[0].value).toFixed(0)}</p>
-      </div>
-    )
-  }
-  return null
-}
-
-// Memoized chart component to prevent unnecessary re-renders
-const MemoizedChart = React.memo(({ curveData }: { curveData: Array<{ x: number; curveY: number; isCurrent: boolean }> }) => (
-  <div className="h-80">
-    <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-        <XAxis
-          dataKey="x"
-          stroke="rgba(255,255,255,0.6)"
-          label={{ value: "WETH Reserves", position: "insideBottom", offset: -10 }}
-        />
-        <YAxis
-          stroke="rgba(255,255,255,0.6)"
-          label={{ value: "USDC Reserves", angle: -90, position: "insideLeft" }}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Line
-          type="monotone"
-          dataKey="curveY"
-          stroke="#a5f10d"
-          strokeWidth={3}
-          dot={<CustomDot />}
-          activeDot={{ r: 6, fill: "#a5f10d" }}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
-  </div>
-))
 
 export default function LiquidityPage() {
   const [mounted, setMounted] = useState(false)
@@ -150,29 +96,7 @@ export default function LiquidityPage() {
     }
   })
 
-  // Generate hyperbola curve data using real pool state
-  const generateCurveData = useCallback(() => {
-    const data: Array<{
-      x: number;
-      curveY: number;
-      isCurrent: boolean;
-    }> = []
-    if (k === 0) return data
 
-    for (let x = Math.max(200, poolState.reserve0 * 0.2); x <= poolState.reserve0 * 3; x += (poolState.reserve0 * 3 - poolState.reserve0 * 0.2) / 100) {
-      const y = k / x
-      if (y > 0) {
-        data.push({
-          x: parseFloat(x.toFixed(2)),
-          curveY: parseFloat(y.toFixed(2)),
-          isCurrent: Math.abs(x - poolState.reserve0) < (poolState.reserve0 * 0.05),
-        })
-      }
-    }
-    return data
-  }, [k, poolState.reserve0])
-
-  const curveData = useMemo(() => generateCurveData(), [generateCurveData])
 
   // Calculate required amount based on pool ratio
   const calculateRequiredAmount = useCallback((inputToken: 'WETH' | 'USDC', inputAmount: string): string => {
@@ -581,34 +505,12 @@ export default function LiquidityPage() {
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Section - Chart (2/3 width) */}
-              <div className="lg:col-span-2 space-y-5">
-                {/* Hyperbola Visualization */}
+              {/* Left Section - Pool Analytics (2/3 width) */}
+              <div className="lg:col-span-2">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                    <CardHeader>
-                      <CardTitle className="text-secondary text-xl font-light">
-                        Constant Product Curve (x × y = k)
-                      </CardTitle>
-                      <CardDescription className="text-white/60">
-                        Interactive visualization of the AMM liquidity curve
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <MemoizedChart curveData={curveData} />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Pool Stats - Using the new component */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
                 >
                   <PoolStatistics
                     poolState={poolState}
@@ -623,12 +525,14 @@ export default function LiquidityPage() {
                     isLoading={isLoading}
                     onRefresh={refreshUserBalances}
                     onReset={resetPool}
+                    pageType="liquidity"
                     showOptions={{
                       showUserPoolShare: true,
                       showPoolConstant: true,
                       showCurrentPrice: true,
                       showRefreshButton: true,
                       showResetButton: true,
+                      showLiquidityDepth: true,
                     }}
                   />
                 </motion.div>

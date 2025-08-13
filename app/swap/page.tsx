@@ -12,15 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import {
-  ComposedChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts"
-import {
   ArrowUpDown,
   ChevronDown,
   Loader2,
@@ -34,7 +25,6 @@ import { useAMM } from "@/contexts/AMMContext"
 import { ERC20_ABI } from "@/lib/abis"
 import PoolStatistics from "@/components/PoolStatistics"
 import Image from "next/image"
-import React from "react"
 
 
 /* --------------------------------------------------- */
@@ -49,56 +39,7 @@ const CONTRACTS = {
 
 const DECIMALS = { WETH: 18, USDC: 6 } as const
 
-const CustomDot = (props: any) => {
-  const { cx, cy, payload } = props
-  return payload?.isCurrent ? (
-    <circle cx={cx} cy={cy} r={8} fill="#00bcd4" stroke="#ffffff" strokeWidth={3} className="animate-pulse" />
-  ) : null
-}
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null
-  const data = payload[0].payload
-  return (
-    <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-lg p-3 text-sm">
-      <p className="text-secondary font-medium">
-        {data.isCurrent ? "Current Pool Position" : "Curve Point"}
-      </p>
-      <p className="text-white">WETH&nbsp;: {label}</p>
-      <p className="text-white">USDC&nbsp;: {payload[0].value.toFixed(2)}</p>
-      <p className="text-cyan-400">k = {(label * payload[0].value).toFixed(0)}</p>
-    </div>
-  )
-}
-
-// Memoized chart component to prevent unnecessary re-renders
-const MemoizedChart = React.memo(({ curveData }: { curveData: Array<{ x: number; curveY: number; isCurrent: boolean }> }) => (
-  <div className="h-80">
-    <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart data={curveData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-        <XAxis
-          dataKey="x"
-          stroke="rgba(255,255,255,0.6)"
-          label={{ value: "WETH Reserves", position: "insideBottom", offset: -10 }}
-        />
-        <YAxis
-          stroke="rgba(255,255,255,0.6)"
-          label={{ value: "USDC Reserves", angle: -90, position: "insideLeft" }}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Line
-          type="monotone"
-          dataKey="curveY"
-          stroke="#a5f10d"
-          strokeWidth={3}
-          dot={<CustomDot />}
-          activeDot={{ r: 6, fill: "#a5f10d" }}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
-  </div>
-))
 
 /* --------------------------------------------------- */
 /*                      COMPONENT                       */
@@ -186,23 +127,7 @@ export default function SwapPage() {
     }
   }, [isApprovalConfirmed, refetchWethAllowance, refetchUsdcAllowance])
 
-  /* ------------- CURVE DATA ------------- */
-  const curveData = useMemo(() => {
-    const data: { x: number; curveY: number; isCurrent: boolean }[] = []
-    if (k === 0) return data
-    const start = Math.max(200, poolState.reserve0 * 0.2)
-    const end = poolState.reserve0 * 3
-    const step = (end - start) / 100
-    for (let x = start; x <= end; x += step) {
-      const y = k / x
-      data.push({
-        x: Number(x.toFixed(2)),
-        curveY: Number(y.toFixed(2)),
-        isCurrent: Math.abs(x - poolState.reserve0) < poolState.reserve0 * 0.05,
-      })
-    }
-    return data
-  }, [k, poolState.reserve0])
+
 
   /* ------------- EXPECTED OUTPUT & IMPACT ------------- */
   const expectedOutput = useMemo(() => {
@@ -323,23 +248,8 @@ export default function SwapPage() {
 
             {/* GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Chart and Pool Stats */}
-              <div className="lg:col-span-2 space-y-5">
-                <Card className="bg-white/5 backdrop-blur-md border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-secondary text-xl font-light">
-                      Trading Curve (x × y = k)
-                    </CardTitle>
-                    <CardDescription className="text-white/60">
-                      Visualize how your swap affects the pool reserves
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <MemoizedChart curveData={curveData} />
-                  </CardContent>
-                </Card>
-
-                {/* Pool Statistics Component */}
+              {/* Pool Analytics */}
+              <div className="lg:col-span-2">
                 <PoolStatistics
                   poolState={poolState}
                   userBalances={userBalances}
@@ -353,12 +263,19 @@ export default function SwapPage() {
                   isLoading={isLoading}
                   onRefresh={refreshUserBalances}
                   onReset={resetPool}
+                  pageType="swap"
+                  swapAmount={swapAmount}
+                  fromToken={fromToken}
+                  expectedOutput={expectedOutput}
+                  priceImpact={priceImpact}
                   showOptions={{
                     showUserPoolShare: true,
                     showPoolConstant: true,
                     showCurrentPrice: true,
                     showRefreshButton: true,
                     showResetButton: true,
+                    showPriceImpact: true,
+                    showLiquidityDepth: true,
                   }}
                 />
               </div>
@@ -537,6 +454,46 @@ export default function SwapPage() {
                 </Card>
               </div>
             </div>
+
+            {/* Educational Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="mt-12"
+            >
+              <Card className="bg-white/5 backdrop-blur-md border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-secondary text-2xl font-light">Understanding Swap Mechanics</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Price Impact</h3>
+                    <p className="text-white/70 leading-relaxed text-sm">
+                      Price impact measures how much your swap affects the pool's price. Larger trades have higher impact,
+                      leading to worse rates. The color coding helps you understand the severity: <span className="text-green-400">green</span> for low impact,
+                      <span className="text-yellow-400"> yellow</span> for moderate, and <span className="text-red-400">red</span> for high impact.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Pool Balances</h3>
+                    <p className="text-white/70 leading-relaxed text-sm">
+                      The progress bar visualizes the current WETH/USDC ratio in the pool. When you swap WETH for USDC,
+                      the bar shifts to show more USDC concentration. This dynamic balance affects the exchange rate
+                      you receive for your trades.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-light mb-3 text-white">Liquidity Depth</h3>
+                    <p className="text-white/70 leading-relaxed text-sm">
+                      Liquidity depth indicates how much trading volume the pool can handle. "Low" depth means the pool
+                      has limited reserves, so large trades will have significant price impact. Consider breaking large
+                      trades into smaller ones to minimize slippage.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </main>
 
